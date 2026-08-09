@@ -26,6 +26,7 @@ mod tests {
         FLT_FILE_NAME_QUERY_DEFAULT,
         FLT_FILTER_UNLOAD_FLAGS,
         FLT_OPERATION_REGISTRATION,
+        FLT_PORT_CONNECT,
         FLT_POST_OPERATION_FLAGS,
         FLT_POSTOP_CALLBACK_STATUS,
         FLT_PREOP_CALLBACK_STATUS,
@@ -36,17 +37,23 @@ mod tests {
         FLTFL_REGISTRATION_DO_NOT_SUPPORT_SERVICE_STOP,
         IRP_MJ_CREATE,
         IRP_MJ_MAXIMUM_FUNCTION,
+        InitializeObjectAttributes,
         NTSTATUS,
+        OBJ_CASE_INSENSITIVE,
+        OBJ_KERNEL_HANDLE,
+        OBJECT_ATTRIBUTES,
         PCFLT_RELATED_OBJECTS,
         PFLT_CALLBACK_DATA,
         PFLT_FILTER_UNLOAD_CALLBACK,
         PFLT_POST_OPERATION_CALLBACK,
         PFLT_PRE_OPERATION_CALLBACK,
         PVOID,
+        STANDARD_RIGHTS_ALL,
         STATUS_SUCCESS,
         UCHAR,
+        UNICODE_STRING,
         USHORT,
-        minifilter::IRP_MJ_OPERATION_END,
+        minifilter::{FLT_PORT_ALL_ACCESS, IRP_MJ_OPERATION_END},
     };
 
     /// `IRP_MJ_OPERATION_END` is defined in `fltKernel.h` as a macro with a
@@ -227,6 +234,75 @@ mod tests {
         assert!(
             registration.InstanceSetupCallback.is_none(),
             "FLT_REGISTRATION::default() should leave unimplemented callbacks null"
+        );
+    }
+
+    /// `FLT_PORT_ALL_ACCESS` is defined in `fltKernel.h` as a macro whose
+    /// expansion references other identifiers
+    /// (`FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL`), which bindgen does not emit,
+    /// so `wdk-sys` composes it by hand. It is the `DesiredAccess` a minifilter
+    /// passes to `FltBuildDefaultSecurityDescriptor` when creating its
+    /// communication port, so a wrong value produces a port that either rejects
+    /// the driver's own userland client or is more permissive than intended.
+    ///
+    /// Every operand is a constant, so the assertions are in `const` blocks:
+    /// a regression here is a build failure rather than a test failure.
+    #[test]
+    const fn flt_port_all_access_is_connect_plus_standard_rights() {
+        const { assert!(FLT_PORT_ALL_ACCESS == FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL) };
+
+        // Composing the mask by hand is only safe while the operands are the same
+        // width as the mask itself; a `u32` operand silently truncated into a
+        // narrower `ACCESS_MASK` would drop `STANDARD_RIGHTS_ALL` entirely and
+        // leave just `FLT_PORT_CONNECT`, which is exactly the mistake this
+        // constant exists to prevent.
+        const {
+            assert!(
+                FLT_PORT_ALL_ACCESS != FLT_PORT_CONNECT,
+                "FLT_PORT_ALL_ACCESS must include the standard rights, not just FLT_PORT_CONNECT"
+            )
+        };
+        const { assert!(FLT_PORT_ALL_ACCESS & FLT_PORT_CONNECT == FLT_PORT_CONNECT) };
+        const { assert!(FLT_PORT_ALL_ACCESS & STANDARD_RIGHTS_ALL == STANDARD_RIGHTS_ALL) };
+    }
+
+    /// `InitializeObjectAttributes` is a function-like macro, which bindgen
+    /// cannot generate, so `wdk-sys` ports it as a `const fn`. Naming the port
+    /// via a communication port's [`OBJECT_ATTRIBUTES`] is the only way to give
+    /// it a name, so a driver cannot avoid this item.
+    #[test]
+    fn initialize_object_attributes_fills_in_length_and_clears_the_qos() {
+        let mut port_name = UNICODE_STRING::default();
+        let mut security_descriptor = 0_u8;
+
+        let object_attributes = InitializeObjectAttributes(
+            &raw mut port_name,
+            OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
+            core::ptr::null_mut(),
+            (&raw mut security_descriptor).cast(),
+        );
+
+        // The Filter Manager rejects an `OBJECT_ATTRIBUTES` whose `Length` does not
+        // match the structure, which is the whole reason the C macro exists.
+        assert_eq!(
+            u64::from(object_attributes.Length),
+            size_of::<OBJECT_ATTRIBUTES>() as u64,
+            "Length should be the size of the structure"
+        );
+        assert!(
+            object_attributes.SecurityQualityOfService.is_null(),
+            "SecurityQualityOfService should be null, as the C macro leaves it"
+        );
+
+        assert_eq!(object_attributes.ObjectName, &raw mut port_name);
+        assert_eq!(
+            object_attributes.Attributes,
+            OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE
+        );
+        assert!(object_attributes.RootDirectory.is_null());
+        assert_eq!(
+            object_attributes.SecurityDescriptor,
+            (&raw mut security_descriptor).cast()
         );
     }
 

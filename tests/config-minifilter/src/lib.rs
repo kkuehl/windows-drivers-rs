@@ -53,3 +53,64 @@ mod filter_manager_routine_signatures {
     const _FLT_RELEASE_FILE_NAME_INFORMATION: unsafe extern "C" fn(PFLT_FILE_NAME_INFORMATION) =
         minifilter::FltReleaseFileNameInformation;
 }
+
+/// Signatures of the routines a minifilter uses to talk to a user-mode
+/// component over a filter communication port. A minifilter that reports
+/// anything to userland needs all of these, and each one is a place where a
+/// wrong argument type would only surface as stack corruption in kernel-mode.
+mod communication_port_routine_signatures {
+    use wdk_sys::{
+        ACCESS_MASK,
+        LONG,
+        NTSTATUS,
+        PFLT_CONNECT_NOTIFY,
+        PFLT_DISCONNECT_NOTIFY,
+        PFLT_FILTER,
+        PFLT_MESSAGE_NOTIFY,
+        PFLT_PORT,
+        PLARGE_INTEGER,
+        POBJECT_ATTRIBUTES,
+        PSECURITY_DESCRIPTOR,
+        PULONG,
+        PVOID,
+        ULONG,
+        minifilter,
+    };
+
+    const _FLT_CREATE_COMMUNICATION_PORT: unsafe extern "C" fn(
+        PFLT_FILTER,
+        *mut PFLT_PORT,
+        POBJECT_ATTRIBUTES,
+        PVOID,
+        PFLT_CONNECT_NOTIFY,
+        PFLT_DISCONNECT_NOTIFY,
+        PFLT_MESSAGE_NOTIFY,
+        LONG,
+    ) -> NTSTATUS = minifilter::FltCreateCommunicationPort;
+
+    const _FLT_CLOSE_COMMUNICATION_PORT: unsafe extern "C" fn(PFLT_PORT) =
+        minifilter::FltCloseCommunicationPort;
+
+    const _FLT_CLOSE_CLIENT_PORT: unsafe extern "C" fn(PFLT_FILTER, *mut PFLT_PORT) =
+        minifilter::FltCloseClientPort;
+
+    // The `DesiredAccess` parameter is why `minifilter::FLT_PORT_ALL_ACCESS` is
+    // typed as an `ACCESS_MASK` rather than left as a `u32`.
+    const _FLT_BUILD_DEFAULT_SECURITY_DESCRIPTOR: unsafe extern "C" fn(
+        *mut PSECURITY_DESCRIPTOR,
+        ACCESS_MASK,
+    ) -> NTSTATUS = minifilter::FltBuildDefaultSecurityDescriptor;
+
+    const _FLT_FREE_SECURITY_DESCRIPTOR: unsafe extern "C" fn(PSECURITY_DESCRIPTOR) =
+        minifilter::FltFreeSecurityDescriptor;
+
+    const _FLT_SEND_MESSAGE: unsafe extern "C" fn(
+        PFLT_FILTER,
+        *mut PFLT_PORT,
+        PVOID,
+        ULONG,
+        PVOID,
+        PULONG,
+        PLARGE_INTEGER,
+    ) -> NTSTATUS = minifilter::FltSendMessage;
+}
