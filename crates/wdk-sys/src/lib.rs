@@ -49,6 +49,13 @@ pub mod gpio;
 ))]
 pub mod hid;
 
+// The Filter Manager API surface is only available in kernel-mode
+#[cfg(all(
+    any(driver_model__driver_type = "WDM", driver_model__driver_type = "KMDF"),
+    feature = "minifilter"
+))]
+pub mod minifilter;
+
 #[cfg(all(
     any(
         driver_model__driver_type = "WDM",
@@ -88,6 +95,13 @@ pub mod storage;
     feature = "usb"
 ))]
 pub mod usb;
+
+// The kernel-mode WFP API surface is only available in kernel-mode
+#[cfg(all(
+    any(driver_model__driver_type = "WDM", driver_model__driver_type = "KMDF"),
+    feature = "wfp"
+))]
+pub mod wfp;
 
 #[cfg(feature = "test-stubs")]
 pub mod test_stubs;

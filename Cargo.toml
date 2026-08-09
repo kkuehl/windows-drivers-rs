@@ -4,11 +4,15 @@ members = ["crates/*"]
 exclude = [
   # Each example and test must be explicitly listed since glob is not currently supported for workspace.exclude: https://github.com/rust-lang/cargo/issues/6009
   "examples/sample-kmdf-driver",
+  "examples/sample-minifilter-driver",
   "examples/sample-umdf-driver",
   "examples/sample-wdm-driver",
+  "examples/sample-wfp-callout-driver",
   "tests/config-kmdf",
+  "tests/config-minifilter",
   "tests/config-umdf",
   "tests/config-wdm",
+  "tests/config-wfp",
   "tests/wdk-macros-tests",
   "tests/wdk-sys-tests",
 ]

@@ -1,19 +1,17 @@
 [package]
 categories = ["hardware-support"]
-description = "A sample KMDF driver that demonstrates KMDF in RUST"
+description = "A sample WFP callout driver that demonstrates the Windows Filtering Platform in RUST"
 edition = "2024"
-keywords = ["driver", "example", "sample", "wdf", "windows"]
+keywords = ["callout", "driver", "example", "sample", "wfp", "windows"]
 license = "MIT OR Apache-2.0"
-name = "sample-kmdf-driver"
+name = "sample-wfp-callout-driver"
 publish = false
 readme = "README.md"
 repository = "https://github.com/microsoft/windows-drivers-rs"
-version = "0.1.0"
+version = "0.0.0"
 
 [package.metadata.wdk.driver-model]
-driver-type = "KMDF"
-kmdf-version-major = 1
-target-kmdf-version-minor = 33
+driver-type = "WDM"
 
 [lib]
 crate-type = ["cdylib"]
@@ -25,19 +23,10 @@ wdk-build.path = "../../crates/wdk-build"
 wdk.path = "../../crates/wdk"
 wdk-alloc.path = "../../crates/wdk-alloc"
 wdk-panic.path = "../../crates/wdk-panic"
-wdk-sys.path = "../../crates/wdk-sys"
+wdk-sys = { features = ["wfp"], path = "../../crates/wdk-sys" }
 
 [features]
 default = []
-
-gpio = ["wdk-sys/gpio"]
-hid = ["wdk-sys/hid"]
-minifilter = ["wdk-sys/minifilter"]
-parallel-ports = ["wdk-sys/parallel-ports"]
-spb = ["wdk-sys/spb"]
-storage = ["wdk-sys/storage"]
-usb = ["wdk-sys/usb"]
-wfp = ["wdk-sys/wfp"]
 
 nightly = ["wdk-sys/nightly", "wdk/nightly"]
 
