@@ -43,7 +43,50 @@ mod wdf {
 
 #[cfg(any(driver_model__driver_type = "WDM", driver_model__driver_type = "KMDF"))]
 mod kernel_mode {
-    use crate::types::POOL_FLAGS;
+    use crate::types::{ACCESS_MASK, POOL_FLAGS};
+
+    // `winnt.h` defines all fourteen process-specific access rights as one
+    // contiguous family, but `wdm.h` redefines only `PROCESS_DUP_HANDLE` and
+    // `PROCESS_ALL_ACCESS` from it. Kernel-mode bindgen never processes
+    // `winnt.h`, so the remaining twelve are absent from the generated constants
+    // and are ported here. The whole family is ported rather than just the rights
+    // a particular driver needs, because a partial port of a contiguous bitfield
+    // is what leaves the next caller adding the neighbouring bit as a literal at
+    // the call site.
+    //
+    // Each is typed `ACCESS_MASK` rather than left as an untyped integer so that
+    // they combine with each other, and with the generated `PROCESS_DUP_HANDLE`,
+    // without a cast at a `DesiredAccess` argument.
+    /// Access right required to terminate a process.
+    pub const PROCESS_TERMINATE: ACCESS_MASK = 0x0001;
+    /// Access right required to create a thread in a process.
+    pub const PROCESS_CREATE_THREAD: ACCESS_MASK = 0x0002;
+    /// Access right required to set a process's session id.
+    pub const PROCESS_SET_SESSIONID: ACCESS_MASK = 0x0004;
+    /// Access right required to operate on the address space of a process, such
+    /// as mapping a section into it with
+    /// [`ZwMapViewOfSection`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmapviewofsection).
+    pub const PROCESS_VM_OPERATION: ACCESS_MASK = 0x0008;
+    /// Access right required to read memory in a process's address space.
+    pub const PROCESS_VM_READ: ACCESS_MASK = 0x0010;
+    /// Access right required to write memory in a process's address space.
+    pub const PROCESS_VM_WRITE: ACCESS_MASK = 0x0020;
+    /// Access right required to create a process.
+    pub const PROCESS_CREATE_PROCESS: ACCESS_MASK = 0x0080;
+    /// Access right required to set a process's memory limits.
+    pub const PROCESS_SET_QUOTA: ACCESS_MASK = 0x0100;
+    /// Access right required to set information about a process.
+    pub const PROCESS_SET_INFORMATION: ACCESS_MASK = 0x0200;
+    /// Access right required to read information about a process.
+    pub const PROCESS_QUERY_INFORMATION: ACCESS_MASK = 0x0400;
+    /// Access right required to suspend or resume a process.
+    pub const PROCESS_SUSPEND_RESUME: ACCESS_MASK = 0x0800;
+    /// Access right required to read a subset of the information
+    /// [`PROCESS_QUERY_INFORMATION`] grants.
+    pub const PROCESS_QUERY_LIMITED_INFORMATION: ACCESS_MASK = 0x1000;
+    /// Access right required to set a subset of the information
+    /// [`PROCESS_SET_INFORMATION`] grants.
+    pub const PROCESS_SET_LIMITED_INFORMATION: ACCESS_MASK = 0x2000;
 
     // Macros with MSVC C Integer Constant Suffixes are not supported by bindgen, so they must be manually ported or imported from elsewhere: https://github.com/rust-lang/rust-bindgen/issues/2600
     pub const POOL_FLAG_REQUIRED_START: POOL_FLAGS = 0x0000_0000_0000_0001;

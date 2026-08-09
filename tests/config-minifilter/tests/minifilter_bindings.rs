@@ -20,6 +20,7 @@ mod tests {
     use wdk_sys::{
         _FLT_POSTOP_CALLBACK_STATUS,
         _FLT_PREOP_CALLBACK_STATUS,
+        ACCESS_MASK,
         FLT_FILE_NAME_INFORMATION,
         FLT_FILE_NAME_NORMALIZED,
         FLT_FILE_NAME_OPTIONS,
@@ -47,6 +48,21 @@ mod tests {
         PFLT_FILTER_UNLOAD_CALLBACK,
         PFLT_POST_OPERATION_CALLBACK,
         PFLT_PRE_OPERATION_CALLBACK,
+        PROCESS_ALL_ACCESS,
+        PROCESS_CREATE_PROCESS,
+        PROCESS_CREATE_THREAD,
+        PROCESS_DUP_HANDLE,
+        PROCESS_QUERY_INFORMATION,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+        PROCESS_SET_INFORMATION,
+        PROCESS_SET_LIMITED_INFORMATION,
+        PROCESS_SET_QUOTA,
+        PROCESS_SET_SESSIONID,
+        PROCESS_SUSPEND_RESUME,
+        PROCESS_TERMINATE,
+        PROCESS_VM_OPERATION,
+        PROCESS_VM_READ,
+        PROCESS_VM_WRITE,
         PVOID,
         STANDARD_RIGHTS_ALL,
         STATUS_SUCCESS,
@@ -264,6 +280,77 @@ mod tests {
         };
         const { assert!(FLT_PORT_ALL_ACCESS & FLT_PORT_CONNECT == FLT_PORT_CONNECT) };
         const { assert!(FLT_PORT_ALL_ACCESS & STANDARD_RIGHTS_ALL == STANDARD_RIGHTS_ALL) };
+    }
+
+    /// The process-specific access rights are defined as one contiguous family
+    /// in `winnt.h`, which kernel-mode bindgen never processes; `wdm.h`
+    /// redefines only `PROCESS_DUP_HANDLE` and `PROCESS_ALL_ACCESS` from it, so
+    /// `wdk-sys` ports the other twelve by hand. A minifilter that maps a
+    /// section into a client's address space needs
+    /// [`PROCESS_VM_OPERATION`] for its `ZwOpenProcess`, and a wrong value there
+    /// would fail the open with `STATUS_ACCESS_DENIED` at best or request an
+    /// unintended right at worst.
+    ///
+    /// `PROCESS_ALL_ACCESS` *is* generated, and `wdm.h` defines it as the
+    /// standard rights plus `SYNCHRONIZE` plus the low `0xFFFF`, so it is an
+    /// independent witness that each hand-ported bit is one the WDK really
+    /// assigns to this family. That is what makes this more than a restatement
+    /// of the literals in `constants.rs`.
+    #[test]
+    const fn process_access_rights_are_within_the_family_all_access_covers() {
+        const RIGHTS: [ACCESS_MASK; 14] = [
+            PROCESS_TERMINATE,
+            PROCESS_CREATE_THREAD,
+            PROCESS_SET_SESSIONID,
+            PROCESS_VM_OPERATION,
+            PROCESS_VM_READ,
+            PROCESS_VM_WRITE,
+            // The one right in the family that bindgen does generate, included so
+            // that the hand-ported values are checked for collisions against it.
+            PROCESS_DUP_HANDLE,
+            PROCESS_CREATE_PROCESS,
+            PROCESS_SET_QUOTA,
+            PROCESS_SET_INFORMATION,
+            PROCESS_QUERY_INFORMATION,
+            PROCESS_SUSPEND_RESUME,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            PROCESS_SET_LIMITED_INFORMATION,
+        ];
+
+        // The assertions are not wrapped in `const` blocks, as the ones in
+        // `flt_port_all_access_is_connect_plus_standard_rights` are, because a
+        // `const` block cannot capture the loop indices. So unlike that test, a
+        // regression here fails the test run rather than the build.
+        let mut index = 0;
+        while index < RIGHTS.len() {
+            // Every one is a single bit: a transposed digit would most likely produce
+            // a value with two bits set, or none.
+            assert!(
+                RIGHTS[index].is_power_of_two(),
+                "each process access right is a single bit"
+            );
+
+            // And every one is inside what `PROCESS_ALL_ACCESS` grants, which is the
+            // check that cannot be satisfied by a literal that merely happens to be a
+            // power of two.
+            assert!(
+                RIGHTS[index] & PROCESS_ALL_ACCESS == RIGHTS[index],
+                "each process access right must be covered by PROCESS_ALL_ACCESS"
+            );
+
+            // Distinctness, pairwise: two rights sharing a bit would mean requesting
+            // one silently requests the other.
+            let mut other = index + 1;
+            while other < RIGHTS.len() {
+                assert!(
+                    RIGHTS[index] != RIGHTS[other],
+                    "the process access rights must be distinct bits"
+                );
+                other += 1;
+            }
+
+            index += 1;
+        }
     }
 
     /// `InitializeObjectAttributes` is a function-like macro, which bindgen
