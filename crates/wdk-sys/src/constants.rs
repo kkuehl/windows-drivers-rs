@@ -43,7 +43,7 @@ mod wdf {
 
 #[cfg(any(driver_model__driver_type = "WDM", driver_model__driver_type = "KMDF"))]
 mod kernel_mode {
-    use crate::types::{ACCESS_MASK, POOL_FLAGS};
+    use crate::types::{ACCESS_MASK, POOL_FLAGS, ULONG};
 
     // `winnt.h` defines all fourteen process-specific access rights as one
     // contiguous family, but `wdm.h` redefines only `PROCESS_DUP_HANDLE` and
@@ -87,6 +87,28 @@ mod kernel_mode {
     /// Access right required to set a subset of the information
     /// [`PROCESS_SET_INFORMATION`] grants.
     pub const PROCESS_SET_LIMITED_INFORMATION: ACCESS_MASK = 0x2000;
+
+    /// The memory in a region is mapped from a portion of an image file.
+    ///
+    /// The third member of the `MEMORY_BASIC_INFORMATION::Type` family, which
+    /// `winnt.h` defines contiguously with the other two. `wdm.h` redefines
+    /// only [`MEM_PRIVATE`] and [`MEM_MAPPED`] from it, so this one is absent
+    /// from the generated constants — a driver that reads `Type` therefore
+    /// cannot name the *most* interesting of the three values without a literal
+    /// at the call site. Ported here for the reason the process access rights
+    /// above are: a partial port of a contiguous family is what leaves the next
+    /// caller writing the neighbouring value out by hand.
+    ///
+    /// `wdm.h` does define [`SEC_IMAGE`], which is the same value, and that is
+    /// what a driver has had to use for this test — but the two constants are
+    /// two different families and only their coincident value made it work. A
+    /// `Type` compared against a `SEC_*` flag reads as a mistake even when it
+    /// is not.
+    ///
+    /// [`MEM_MAPPED`]: crate::MEM_MAPPED
+    /// [`MEM_PRIVATE`]: crate::MEM_PRIVATE
+    /// [`SEC_IMAGE`]: crate::SEC_IMAGE
+    pub const MEM_IMAGE: ULONG = 0x0100_0000;
 
     // Macros with MSVC C Integer Constant Suffixes are not supported by bindgen, so they must be manually ported or imported from elsewhere: https://github.com/rust-lang/rust-bindgen/issues/2600
     pub const POOL_FLAG_REQUIRED_START: POOL_FLAGS = 0x0000_0000_0000_0001;

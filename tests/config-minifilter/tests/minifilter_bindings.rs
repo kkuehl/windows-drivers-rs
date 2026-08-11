@@ -39,6 +39,9 @@ mod tests {
         IRP_MJ_CREATE,
         IRP_MJ_MAXIMUM_FUNCTION,
         InitializeObjectAttributes,
+        MEM_IMAGE,
+        MEM_MAPPED,
+        MEM_PRIVATE,
         NTSTATUS,
         OBJ_CASE_INSENSITIVE,
         OBJ_KERNEL_HANDLE,
@@ -64,6 +67,7 @@ mod tests {
         PROCESS_VM_READ,
         PROCESS_VM_WRITE,
         PVOID,
+        SEC_IMAGE,
         STANDARD_RIGHTS_ALL,
         STATUS_SUCCESS,
         UCHAR,
@@ -287,9 +291,9 @@ mod tests {
     /// redefines only `PROCESS_DUP_HANDLE` and `PROCESS_ALL_ACCESS` from it, so
     /// `wdk-sys` ports the other twelve by hand. A minifilter that maps a
     /// section into a client's address space needs
-    /// [`PROCESS_VM_OPERATION`] for its `ZwOpenProcess`, and a wrong value there
-    /// would fail the open with `STATUS_ACCESS_DENIED` at best or request an
-    /// unintended right at worst.
+    /// [`PROCESS_VM_OPERATION`] for its `ZwOpenProcess`, and a wrong value
+    /// there would fail the open with `STATUS_ACCESS_DENIED` at best or
+    /// request an unintended right at worst.
     ///
     /// `PROCESS_ALL_ACCESS` *is* generated, and `wdm.h` defines it as the
     /// standard rights plus `SYNCHRONIZE` plus the low `0xFFFF`, so it is an
@@ -351,6 +355,37 @@ mod tests {
 
             index += 1;
         }
+    }
+
+    /// `MEM_IMAGE` is the one member of the `MEMORY_BASIC_INFORMATION::Type`
+    /// family that `wdm.h` does not redefine from `winnt.h`, so bindgen
+    /// generates its two siblings and not it. A driver that walks a process's
+    /// address space with `ZwQueryVirtualMemory` reads `Type` to tell an image
+    /// mapping from a private or file mapping, which makes the absent value the
+    /// most useful of the three.
+    ///
+    /// The value is checked against `SEC_IMAGE` rather than restated as a
+    /// literal: `wdm.h` *does* define that one, at the same value, so it is an
+    /// independent witness out of the generated constants. The two are separate
+    /// families — a section-creation flag and a region type — which is why the
+    /// hand-ported constant exists at all rather than callers reusing
+    /// `SEC_IMAGE`, and it is also what makes this a real check.
+    ///
+    /// Both operands are constants, so the assertions are in `const` blocks: a
+    /// regression is a build failure rather than a test failure.
+    #[test]
+    const fn mem_image_is_the_region_type_matching_sec_image() {
+        const {
+            assert!(
+                MEM_IMAGE == SEC_IMAGE,
+                "MEM_IMAGE is winnt.h's 0x01000000, as SEC_IMAGE is"
+            )
+        };
+
+        // A single bit, which a transposed digit would most likely break, and one
+        // that does not collide with either sibling `wdm.h` does define.
+        const { assert!(MEM_IMAGE.is_power_of_two()) };
+        const { assert!(MEM_IMAGE != MEM_MAPPED && MEM_IMAGE != MEM_PRIVATE) };
     }
 
     /// `InitializeObjectAttributes` is a function-like macro, which bindgen
