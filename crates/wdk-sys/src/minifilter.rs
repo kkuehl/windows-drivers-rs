@@ -39,7 +39,7 @@ pub const FLT_PORT_ALL_ACCESS: ACCESS_MASK = FLT_PORT_CONNECT | STANDARD_RIGHTS_
 //
 // SAFETY: This function is safe to call with any valid FLT_CALLBACK_DATA pointer.
 // It returns the process ID (ULONG) of the thread that originated the operation.
-extern "C" {
+unsafe extern "C" {
     /// Returns the process ID of the thread that originated the I/O operation
     /// represented by the given callback data.
     ///
