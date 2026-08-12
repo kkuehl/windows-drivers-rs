@@ -32,6 +32,30 @@ pub const IRP_MJ_OPERATION_END: UCHAR = 0x80;
 /// [`FltBuildDefaultSecurityDescriptor`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/fltkernel/nf-fltkernel-fltbuilddefaultsecuritydescriptor).
 pub const FLT_PORT_ALL_ACCESS: ACCESS_MASK = FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL;
 
+// `FltGetRequestorProcessId` is defined in fltKernel.h but bindgen does not
+// generate it, possibly because it's an inline function or has attributes that
+// bindgen skips. Minifilters need this to identify which process originated an
+// I/O operation, so it's manually ported here.
+//
+// SAFETY: This function is safe to call with any valid FLT_CALLBACK_DATA pointer.
+// It returns the process ID (ULONG) of the thread that originated the operation.
+extern "C" {
+    /// Returns the process ID of the thread that originated the I/O operation
+    /// represented by the given callback data.
+    ///
+    /// # Parameters
+    /// * `CallbackData` - Pointer to the callback data for the I/O operation
+    ///
+    /// # Returns
+    /// The process ID (PID) as a `ULONG` (u32)
+    ///
+    /// # Safety
+    /// The caller must ensure `CallbackData` is a valid pointer to
+    /// `FLT_CALLBACK_DATA`.
+    pub fn FltGetRequestorProcessId(CallbackData: *mut crate::types::FLT_CALLBACK_DATA)
+        -> crate::types::ULONG;
+}
+
 #[allow(
     missing_docs,
     reason = "most items in the WDK headers have no inline documentation, so bindgen is unable to \

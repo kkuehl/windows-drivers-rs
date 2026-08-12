@@ -88,6 +88,22 @@ mod kernel_mode {
     /// [`PROCESS_SET_INFORMATION`] grants.
     pub const PROCESS_SET_LIMITED_INFORMATION: ACCESS_MASK = 0x2000;
 
+    // `winnt.h` defines all thread-specific access rights as one contiguous
+    // family, but `wdm.h` redefines only a subset of them. Kernel-mode bindgen
+    // never processes `winnt.h`, so many thread access rights are absent from
+    // the generated constants. These three are required for object monitoring
+    // callbacks that need to check or modify thread access masks.
+    //
+    // Each is typed `ACCESS_MASK` rather than left as an untyped integer so that
+    // they combine with each other and with other generated access rights without
+    // a cast.
+    /// Access right required to directly impersonate a thread.
+    pub const THREAD_DIRECT_IMPERSONATION: ACCESS_MASK = 0x0200;
+    /// Access right required to impersonate a thread.
+    pub const THREAD_IMPERSONATE: ACCESS_MASK = 0x0100;
+    /// Access right required to set a thread's token.
+    pub const THREAD_SET_THREAD_TOKEN: ACCESS_MASK = 0x0080;
+
     /// The memory in a region is mapped from a portion of an image file.
     ///
     /// The third member of the `MEMORY_BASIC_INFORMATION::Type` family, which
