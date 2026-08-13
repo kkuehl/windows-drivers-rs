@@ -83,12 +83,42 @@ mod bindings {
 /// Drivers should not access MDL fields directly. Use the MDL functions
 /// (IoAllocateMdl, MmProbeAndLockPages, etc.) to manipulate MDLs.
 #[repr(C)]
+/// Memory Descriptor List (MDL) structure.
+///
+/// An MDL describes a buffer in memory by dividing it into physical pages.
+/// This is the kernel's mechanism for safely accessing user-mode memory.
+///
+/// # Layout
+///
+/// This structure matches the Windows DDK `_MDL` definition from `wdm.h`.
+#[repr(C)]
 pub struct MDL {
-    _opaque: [u8; 0],
+    /// Pointer to the next MDL in a chain.
+    pub Next: PMDL,
+    /// Size of this MDL in bytes.
+    pub Size: SHORT,
+    /// MDL flags (see MDL_* constants).
+    pub MdlFlags: USHORT,
+    /// Process that owns the buffer (NULL for kernel buffers).
+    pub Process: *mut core::ffi::c_void,
+    /// Kernel virtual address if mapped, NULL otherwise.
+    pub MappedSystemVa: PVOID,
+    /// Starting virtual address of the buffer.
+    pub StartVa: PVOID,
+    /// Number of bytes in the buffer.
+    pub ByteCount: ULONG,
+    /// Offset from StartVa to the beginning of the buffer.
+    pub ByteOffset: ULONG,
 }
 
 /// Pointer to an MDL.
 pub type PMDL = *mut MDL;
+
+// MDL flag constants for interpreting MDL.MdlFlags
+/// The MDL has been mapped into system virtual address space.
+pub const MDL_MAPPED_TO_SYSTEM_VA: USHORT = 0x0001;
+/// The buffer described by the MDL is in nonpaged pool.
+pub const MDL_SOURCE_IS_NONPAGED_POOL: USHORT = 0x0004;
 
 /// Specifies the type of access for which pages should be locked.
 ///
