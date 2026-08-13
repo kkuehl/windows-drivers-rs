@@ -92,20 +92,28 @@ unsafe extern "C" {
     /// - The MDL must have been allocated with `IoAllocateMdl`
     pub fn IoFreeMdl(Mdl: crate::types::PMDL);
 
-    /// Returns a nonpaged system-space virtual address for the buffer described by the MDL.
+    /// Maps locked pages described by an MDL into system space.
     ///
     /// # Parameters
-    /// * `Mdl` - Pointer to the MDL
-    /// * `Priority` - MM_PAGE_PRIORITY value (NormalPagePriority = 16)
+    /// * `MemoryDescriptorList` - Pointer to the MDL describing the locked pages
+    /// * `AccessMode` - KernelMode (1) or UserMode (0)
+    /// * `CacheType` - Caching type (MmCached = 1, MmNonCached = 0, etc.)
+    /// * `BaseAddress` - Preferred base address (usually NULL)
+    /// * `BugCheckOnFailure` - TRUE to bugcheck if mapping fails
+    /// * `Priority` - MM_PAGE_PRIORITY value (e.g., NormalPagePriority = 16)
     ///
     /// # Returns
-    /// System virtual address, or NULL if mapping failed
+    /// System virtual address of the mapped pages, or NULL if mapping failed
     ///
     /// # Safety
     /// - The MDL must have been locked with `MmProbeAndLockPages`
-    /// - This is actually a macro in wdm.h, but we expose it as a function
-    pub fn MmGetSystemAddressForMdlSafe(
-        Mdl: crate::types::PMDL,
+    /// - If BugCheckOnFailure is TRUE, the function will never return NULL (it bugchecks)
+    pub fn MmMapLockedPagesSpecifyCache(
+        MemoryDescriptorList: crate::types::PMDL,
+        AccessMode: crate::types::KPROCESSOR_MODE,
+        CacheType: crate::types::MEMORY_CACHING_TYPE,
+        BaseAddress: crate::types::PVOID,
+        BugCheckOnFailure: crate::types::ULONG,
         Priority: crate::types::ULONG,
     ) -> crate::types::PVOID;
 }

@@ -111,3 +111,25 @@ pub const NORMAL_PAGE_PRIORITY: ULONG = 16;
 pub const LOW_PAGE_PRIORITY: ULONG = 0;
 /// High page priority (should not fail except in extreme cases).
 pub const HIGH_PAGE_PRIORITY: ULONG = 32;
+
+/// Memory caching types for `MmMapLockedPagesSpecifyCache`.
+///
+/// These values control how the mapped pages are cached in the processor's TLBs.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MEMORY_CACHING_TYPE {
+    /// Non-cached memory.
+    MmNonCached = 0,
+    /// Cached memory (typical case).
+    MmCached = 1,
+    /// Write-combined memory (for frame buffers).
+    MmWriteCombined = 2,
+    /// Hardware coherent cached memory.
+    MmHardwareCoherentCached = 3,
+    /// Non-cached unordered memory.
+    MmNonCachedUnordered = 4,
+    /// USB cached memory.
+    MmUSBCached = 5,
+    /// Maximum value (for validation).
+    MmMaximumCacheType = 6,
+}
