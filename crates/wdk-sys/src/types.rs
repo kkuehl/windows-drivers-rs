@@ -152,3 +152,41 @@ pub enum MEMORY_CACHING_TYPE {
     /// Maximum value (for validation).
     MmMaximumCacheType = 6,
 }
+
+/// Information class for ZwQueryValueKey.
+///
+/// Specifies the type of information to be returned about a registry key value.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KEY_VALUE_INFORMATION_CLASS {
+    /// Returns KEY_VALUE_BASIC_INFORMATION.
+    KeyValueBasicInformation = 0,
+    /// Returns KEY_VALUE_FULL_INFORMATION.
+    KeyValueFullInformation = 1,
+    /// Returns KEY_VALUE_PARTIAL_INFORMATION (most commonly used).
+    KeyValuePartialInformation = 2,
+    /// Returns KEY_VALUE_FULL_INFORMATION_ALIGN64.
+    KeyValueFullInformationAlign64 = 3,
+    /// Returns KEY_VALUE_PARTIAL_INFORMATION_ALIGN64.
+    KeyValuePartialInformationAlign64 = 4,
+    /// Returns KEY_VALUE_LAYER_INFORMATION.
+    KeyValueLayerInformation = 5,
+    /// Maximum value.
+    MaxKeyValueInfoClass = 6,
+}
+
+/// Registry value type constants for ZwSetValueKey.
+///
+/// Standard REG_* type values from winnt.h.
+pub const REG_NONE: ULONG = 0;
+pub const REG_SZ: ULONG = 1;
+pub const REG_EXPAND_SZ: ULONG = 2;
+pub const REG_BINARY: ULONG = 3;
+pub const REG_DWORD: ULONG = 4;
+pub const REG_DWORD_BIG_ENDIAN: ULONG = 5;
+pub const REG_LINK: ULONG = 6;
+pub const REG_MULTI_SZ: ULONG = 7;
+pub const REG_RESOURCE_LIST: ULONG = 8;
+pub const REG_FULL_RESOURCE_DESCRIPTOR: ULONG = 9;
+pub const REG_RESOURCE_REQUIREMENTS_LIST: ULONG = 10;
+pub const REG_QWORD: ULONG = 11;

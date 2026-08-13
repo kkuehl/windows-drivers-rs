@@ -123,4 +123,90 @@ unsafe extern "C" {
         BugCheckOnFailure: crate::types::ULONG,
         Priority: crate::types::ULONG,
     ) -> crate::types::PVOID;
+
+    // Registry functions from ntddk.h
+
+    /// Opens an existing registry key.
+    ///
+    /// # Parameters
+    /// * `KeyHandle` - Pointer to receive the opened key handle
+    /// * `DesiredAccess` - ACCESS_MASK specifying desired access rights
+    /// * `ObjectAttributes` - Pointer to OBJECT_ATTRIBUTES structure
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - Must call ZwClose on the handle when done
+    /// - ObjectAttributes must point to valid, initialized structure
+    pub fn ZwOpenKey(
+        KeyHandle: *mut crate::types::HANDLE,
+        DesiredAccess: crate::types::ACCESS_MASK,
+        ObjectAttributes: *mut crate::types::OBJECT_ATTRIBUTES,
+    ) -> crate::types::NTSTATUS;
+
+    /// Queries a value entry for a registry key.
+    ///
+    /// # Parameters
+    /// * `KeyHandle` - Handle to the registry key
+    /// * `ValueName` - Pointer to UNICODE_STRING with value name
+    /// * `KeyValueInformationClass` - Type of information to return
+    /// * `KeyValueInformation` - Buffer to receive the value data
+    /// * `Length` - Size of the buffer in bytes
+    /// * `ResultLength` - Pointer to receive required buffer size
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code (STATUS_BUFFER_TOO_SMALL if buffer too small)
+    ///
+    /// # Safety
+    /// - KeyHandle must be a valid open registry key handle
+    /// - ValueName must point to valid UNICODE_STRING
+    /// - Buffer must be at least Length bytes
+    pub fn ZwQueryValueKey(
+        KeyHandle: crate::types::HANDLE,
+        ValueName: *mut crate::types::UNICODE_STRING,
+        KeyValueInformationClass: crate::types::KEY_VALUE_INFORMATION_CLASS,
+        KeyValueInformation: crate::types::PVOID,
+        Length: crate::types::ULONG,
+        ResultLength: *mut crate::types::ULONG,
+    ) -> crate::types::NTSTATUS;
+
+    /// Sets a value entry for a registry key.
+    ///
+    /// # Parameters
+    /// * `KeyHandle` - Handle to the registry key
+    /// * `ValueName` - Pointer to UNICODE_STRING with value name
+    /// * `TitleIndex` - Reserved, must be 0
+    /// * `Type` - REG_* type constant (REG_BINARY, REG_DWORD, etc.)
+    /// * `Data` - Pointer to the value data
+    /// * `DataSize` - Size of the data in bytes
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - KeyHandle must be a valid open registry key handle with KEY_SET_VALUE access
+    /// - ValueName must point to valid UNICODE_STRING
+    /// - Data must point to at least DataSize bytes
+    pub fn ZwSetValueKey(
+        KeyHandle: crate::types::HANDLE,
+        ValueName: *mut crate::types::UNICODE_STRING,
+        TitleIndex: crate::types::ULONG,
+        Type: crate::types::ULONG,
+        Data: crate::types::PVOID,
+        DataSize: crate::types::ULONG,
+    ) -> crate::types::NTSTATUS;
+
+    /// Closes an object handle.
+    ///
+    /// # Parameters
+    /// * `Handle` - Handle to close (can be registry key, file, etc.)
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - Handle must be a valid open handle
+    /// - Do not use the handle after closing it
+    pub fn ZwClose(Handle: crate::types::HANDLE) -> crate::types::NTSTATUS;
 }
