@@ -75,14 +75,6 @@ mod bindings {
 // MDL (Memory Descriptor List) types from wdm.h
 //
 // These types are used by the MDL functions in ntddk.rs. The MDL structure itself
-// is opaque to drivers (only the kernel accesses its fields), so we define it as
-// an opaque type.
-
-/// Opaque structure describing a range of virtual memory pages.
-///
-/// Drivers should not access MDL fields directly. Use the MDL functions
-/// (IoAllocateMdl, MmProbeAndLockPages, etc.) to manipulate MDLs.
-#[repr(C)]
 /// Memory Descriptor List (MDL) structure.
 ///
 /// An MDL describes a buffer in memory by dividing it into physical pages.
@@ -91,6 +83,9 @@ mod bindings {
 /// # Layout
 ///
 /// This structure matches the Windows DDK `_MDL` definition from `wdm.h`.
+/// While Microsoft documentation says drivers should not access MDL fields directly,
+/// the `MmGetSystemAddressForMdlSafe` macro requires reading `MdlFlags` and
+/// `MappedSystemVa`, so we expose the full structure.
 #[repr(C)]
 pub struct MDL {
     /// Pointer to the next MDL in a chain.
@@ -113,12 +108,6 @@ pub struct MDL {
 
 /// Pointer to an MDL.
 pub type PMDL = *mut MDL;
-
-// MDL flag constants for interpreting MDL.MdlFlags
-/// The MDL has been mapped into system virtual address space.
-pub const MDL_MAPPED_TO_SYSTEM_VA: USHORT = 0x0001;
-/// The buffer described by the MDL is in nonpaged pool.
-pub const MDL_SOURCE_IS_NONPAGED_POOL: USHORT = 0x0004;
 
 /// Specifies the type of access for which pages should be locked.
 ///

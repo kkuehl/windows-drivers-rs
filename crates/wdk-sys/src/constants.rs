@@ -2854,3 +2854,10 @@ pub const STATUS_WX86_UNSIMULATE: NTSTATUS = 1_073_741_852_i32;
 pub const STATUS_XMLDSIG_ERROR: NTSTATUS = -1_073_700_732_i32;
 pub const STATUS_XML_ENCODING_MISMATCH: NTSTATUS = -1_072_365_535_i32;
 pub const STATUS_XML_PARSE_ERROR: NTSTATUS = -1_073_700_733_i32;
+
+// MDL flag constants for interpreting MDL.MdlFlags
+// These are #define macros in wdm.h that bindgen cannot capture
+/// The MDL has been mapped into system virtual address space.
+pub const MDL_MAPPED_TO_SYSTEM_VA: crate::types::USHORT = 0x0001;
+/// The buffer described by the MDL is in nonpaged pool.
+pub const MDL_SOURCE_IS_NONPAGED_POOL: crate::types::USHORT = 0x0004;
