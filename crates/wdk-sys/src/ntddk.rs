@@ -125,7 +125,36 @@ unsafe extern "C" {
     ) -> crate::types::PVOID;
 
     // Registry functions from ntddk.h
+}
 
+// Registry value type constants for ZwSetValueKey
+// These are #define macros in winnt.h that bindgen cannot capture
+/// No value type.
+pub const REG_NONE: u32 = 0;
+/// Unicode string.
+pub const REG_SZ: u32 = 1;
+/// Unicode string with environment variables.
+pub const REG_EXPAND_SZ: u32 = 2;
+/// Binary data.
+pub const REG_BINARY: u32 = 3;
+/// 32-bit number.
+pub const REG_DWORD: u32 = 4;
+/// 32-bit number in big-endian format.
+pub const REG_DWORD_BIG_ENDIAN: u32 = 5;
+/// Symbolic link.
+pub const REG_LINK: u32 = 6;
+/// Multiple Unicode strings.
+pub const REG_MULTI_SZ: u32 = 7;
+/// Resource list.
+pub const REG_RESOURCE_LIST: u32 = 8;
+/// Full resource descriptor.
+pub const REG_FULL_RESOURCE_DESCRIPTOR: u32 = 9;
+/// Resource requirements list.
+pub const REG_RESOURCE_REQUIREMENTS_LIST: u32 = 10;
+/// 64-bit number.
+pub const REG_QWORD: u32 = 11;
+
+unsafe extern "C" {
     /// Opens an existing registry key.
     ///
     /// # Parameters

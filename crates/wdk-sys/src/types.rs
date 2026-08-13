@@ -175,18 +175,3 @@ pub enum KEY_VALUE_INFORMATION_CLASS {
     MaxKeyValueInfoClass = 6,
 }
 
-/// Registry value type constants for ZwSetValueKey.
-///
-/// Standard REG_* type values from winnt.h.
-pub const REG_NONE: ULONG = 0;
-pub const REG_SZ: ULONG = 1;
-pub const REG_EXPAND_SZ: ULONG = 2;
-pub const REG_BINARY: ULONG = 3;
-pub const REG_DWORD: ULONG = 4;
-pub const REG_DWORD_BIG_ENDIAN: ULONG = 5;
-pub const REG_LINK: ULONG = 6;
-pub const REG_MULTI_SZ: ULONG = 7;
-pub const REG_RESOURCE_LIST: ULONG = 8;
-pub const REG_FULL_RESOURCE_DESCRIPTOR: ULONG = 9;
-pub const REG_RESOURCE_REQUIREMENTS_LIST: ULONG = 10;
-pub const REG_QWORD: ULONG = 11;
