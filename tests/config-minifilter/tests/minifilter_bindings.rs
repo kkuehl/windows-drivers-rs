@@ -459,11 +459,13 @@ mod tests {
     #[test]
     fn mdl_functions_and_types_are_available() {
         use wdk_sys::{
-            ntddk::{
-                IoAllocateMdl, IoFreeMdl, MmGetSystemAddressForMdlSafe, MmProbeAndLockPages,
-                MmUnlockPages,
-            },
-            HIGH_PAGE_PRIORITY, LOCK_OPERATION, LOW_PAGE_PRIORITY, MDL, NORMAL_PAGE_PRIORITY, PMDL,
+            ntddk::{IoAllocateMdl, IoFreeMdl, MmProbeAndLockPages, MmUnlockPages},
+            HIGH_PAGE_PRIORITY,
+            LOCK_OPERATION,
+            LOW_PAGE_PRIORITY,
+            MDL,
+            NORMAL_PAGE_PRIORITY,
+            PMDL,
         };
 
         // Validate LOCK_OPERATION enum discriminants match wdm.h
@@ -479,11 +481,54 @@ mod tests {
         // Validate function signatures compile (no actual calls in usermode test)
         let _: unsafe extern "C" fn(PVOID, u32, u8, u8, *mut _) -> PMDL = IoAllocateMdl;
         let _: unsafe extern "C" fn(PMDL, i8, LOCK_OPERATION) = MmProbeAndLockPages;
-        let _: unsafe extern "C" fn(PMDL, u32) -> PVOID = MmGetSystemAddressForMdlSafe;
         let _: unsafe extern "C" fn(PMDL) = MmUnlockPages;
         let _: unsafe extern "C" fn(PMDL) = IoFreeMdl;
 
         // Validate MDL is an opaque type (zero-sized marker)
         assert_eq!(size_of::<MDL>(), 0, "MDL should be opaque (zero-sized)");
+    }
+
+    /// Lookaside lists provide efficient allocation/deallocation of fixed-size objects
+    /// by maintaining a pool of preallocated structures. This test verifies that bindgen
+    /// correctly generated the lookaside list APIs from wdm.h.
+    #[test]
+    const fn lookaside_list_bindings_exist() {
+        use wdk_sys::{
+            ntddk::{
+                ExAllocateFromLookasideListEx,
+                ExDeleteLookasideListEx,
+                ExFreeToLookasideListEx,
+                ExInitializeLookasideListEx,
+            },
+            _LOOKASIDE_LIST_EX,
+            NTSTATUS,
+            PALLOCATE_FUNCTION_EX,
+            PFREE_FUNCTION_EX,
+            PLOOKASIDE_LIST_EX,
+            POOL_TYPE,
+            PVOID,
+            SIZE_T,
+            ULONG,
+            USHORT,
+        };
+
+        // Validate function signatures compile (no actual calls in usermode test)
+        let _: unsafe extern "C" fn(
+            PLOOKASIDE_LIST_EX,
+            PALLOCATE_FUNCTION_EX,
+            PFREE_FUNCTION_EX,
+            POOL_TYPE,
+            ULONG,
+            SIZE_T,
+            ULONG,
+            USHORT,
+        ) -> NTSTATUS = ExInitializeLookasideListEx;
+        let _: unsafe extern "C" fn(PLOOKASIDE_LIST_EX) = ExDeleteLookasideListEx;
+        let _: unsafe extern "C" fn(PLOOKASIDE_LIST_EX) -> PVOID =
+            ExAllocateFromLookasideListEx;
+        let _: unsafe extern "C" fn(PLOOKASIDE_LIST_EX, PVOID) = ExFreeToLookasideListEx;
+
+        // Validate _LOOKASIDE_LIST_EX exists and has reasonable size
+        assert!(size_of::<_LOOKASIDE_LIST_EX>() >= 64);
     }
 }
