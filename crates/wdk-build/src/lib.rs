@@ -1145,10 +1145,12 @@ impl Config {
             ApiSubset::Hid => self.hid_libraries(),
             ApiSubset::Wdf
             | ApiSubset::Gpio
+            | ApiSubset::Minifilter
             | ApiSubset::ParallelPorts
             | ApiSubset::Spb
             | ApiSubset::Storage
-            | ApiSubset::Usb => Vec::new(),
+            | ApiSubset::Usb
+            | ApiSubset::Wfp => Vec::new(),
         }
     }
 
