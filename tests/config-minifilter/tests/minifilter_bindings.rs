@@ -488,6 +488,44 @@ mod tests {
         assert_eq!(size_of::<MDL>(), 0, "MDL should be opaque (zero-sized)");
     }
 
+    /// FILE_INFORMATION_CLASS constants from ntifs.h are hand-ported to wdk-sys.
+    /// This test verifies they exist and have the correct values.
+    #[test]
+    fn file_information_class_constants_exist() {
+        use wdk_sys::{
+            FILE_ALLOCATION_INFORMATION,
+            FILE_DISPOSITION_INFORMATION,
+            FILE_DISPOSITION_INFORMATION_EX,
+            FILE_END_OF_FILE_INFORMATION,
+            FILE_LINK_INFORMATION,
+            FILE_LINK_INFORMATION_BYPASS_ACCESS_CHECK,
+            FILE_LINK_INFORMATION_EX,
+            FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK,
+            FILE_RENAME_INFORMATION,
+            FILE_RENAME_INFORMATION_BYPASS_ACCESS_CHECK,
+            FILE_RENAME_INFORMATION_EX,
+            FILE_RENAME_INFORMATION_EX_BYPASS_ACCESS_CHECK,
+            FILE_SHORT_NAME_INFORMATION,
+            FILE_VALID_DATA_LENGTH_INFORMATION,
+        };
+
+        // Validate values match ntifs.h
+        assert_eq!(FILE_RENAME_INFORMATION, 10);
+        assert_eq!(FILE_LINK_INFORMATION, 11);
+        assert_eq!(FILE_DISPOSITION_INFORMATION, 13);
+        assert_eq!(FILE_ALLOCATION_INFORMATION, 19);
+        assert_eq!(FILE_END_OF_FILE_INFORMATION, 20);
+        assert_eq!(FILE_VALID_DATA_LENGTH_INFORMATION, 39);
+        assert_eq!(FILE_SHORT_NAME_INFORMATION, 40);
+        assert_eq!(FILE_DISPOSITION_INFORMATION_EX, 64);
+        assert_eq!(FILE_RENAME_INFORMATION_EX, 65);
+        assert_eq!(FILE_RENAME_INFORMATION_BYPASS_ACCESS_CHECK, 71);
+        assert_eq!(FILE_LINK_INFORMATION_EX, 72);
+        assert_eq!(FILE_RENAME_INFORMATION_EX_BYPASS_ACCESS_CHECK, 73);
+        assert_eq!(FILE_LINK_INFORMATION_BYPASS_ACCESS_CHECK, 74);
+        assert_eq!(FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK, 75);
+    }
+
     /// Lookaside lists provide efficient allocation/deallocation of fixed-size objects
     /// by maintaining a pool of preallocated structures. This test verifies that bindgen
     /// correctly generated the lookaside list APIs from wdm.h.
