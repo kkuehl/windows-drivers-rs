@@ -287,9 +287,15 @@ fn generate_base(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
     let header_contents = config.bindgen_header_contents([ApiSubset::Base])?;
     trace!(header_contents = ?header_contents);
 
-    let bindgen_builder = bindgen::Builder::wdk_default(config)?
-        .with_codegen_config((CodegenConfig::TYPES | CodegenConfig::VARS).complement())
-        .header_contents(&format!("{outfile_name}-input.h"), &header_contents);
+    let bindgen_builder = {
+        let mut builder = bindgen::Builder::wdk_default(config)?
+            .with_codegen_config((CodegenConfig::TYPES | CodegenConfig::VARS).complement())
+            .header_contents(&format!("{outfile_name}-input.h"), &header_contents);
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Base) {
+            builder = builder.raw_line(raw_lines);
+        }
+        builder
+    };
     trace!(bindgen_builder = ?bindgen_builder);
 
     let output_file_path = out_path.join(format!("{outfile_name}.rs"));
@@ -307,12 +313,18 @@ fn generate_wdf(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         let header_contents = config.bindgen_header_contents([ApiSubset::Base, ApiSubset::Wdf])?;
         trace!(header_contents = ?header_contents);
 
-        let bindgen_builder = bindgen::Builder::wdk_default(config)?
-            .with_codegen_config((CodegenConfig::TYPES | CodegenConfig::VARS).complement())
-            .header_contents("wdf-input.h", &header_contents)
-            // Only generate for files that are prefixed with (case-insensitive) wdf (ie.
-            // /some/path/WdfSomeHeader.h), to prevent duplication of code in ntddk.rs
-            .allowlist_file("(?i).*wdf.*");
+        let bindgen_builder = {
+            let mut builder = bindgen::Builder::wdk_default(config)?
+                .with_codegen_config((CodegenConfig::TYPES | CodegenConfig::VARS).complement())
+                .header_contents("wdf-input.h", &header_contents)
+                // Only generate for files that are prefixed with (case-insensitive) wdf (ie.
+                // /some/path/WdfSomeHeader.h), to prevent duplication of code in ntddk.rs
+                .allowlist_file("(?i).*wdf.*");
+            if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Wdf) {
+                builder = builder.raw_line(raw_lines);
+            }
+            builder
+        };
         trace!(bindgen_builder = ?bindgen_builder);
 
         let output_file_path = out_path.join("wdf.rs");
@@ -348,6 +360,9 @@ fn generate_gpio(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         for header_file in config.headers(ApiSubset::Gpio)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
         }
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Gpio) {
+            builder = builder.raw_line(raw_lines);
+        }
         builder
     };
     trace!(bindgen_builder = ?bindgen_builder);
@@ -377,6 +392,10 @@ fn generate_hid(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         // duplicate definitions
         for header_file in config.headers(ApiSubset::Hid)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
+        }
+
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Hid) {
+            builder = builder.raw_line(raw_lines);
         }
         builder
     };
@@ -457,6 +476,9 @@ fn generate_parallel_ports(out_path: &Path, config: &Config) -> Result<(), Confi
         for header_file in config.headers(ApiSubset::ParallelPorts)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
         }
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::ParallelPorts) {
+            builder = builder.raw_line(raw_lines);
+        }
         builder
     };
     trace!(bindgen_builder = ?bindgen_builder);
@@ -486,6 +508,9 @@ fn generate_spb(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         // duplicate definitions
         for header_file in config.headers(ApiSubset::Spb)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
+        }
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Spb) {
+            builder = builder.raw_line(raw_lines);
         }
         builder
     };
@@ -517,6 +542,9 @@ fn generate_storage(out_path: &Path, config: &Config) -> Result<(), ConfigError>
         for header_file in config.headers(ApiSubset::Storage)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
         }
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Storage) {
+            builder = builder.raw_line(raw_lines);
+        }
         builder
     };
     trace!(bindgen_builder = ?bindgen_builder);
@@ -546,6 +574,9 @@ fn generate_usb(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         // duplicate definitions
         for header_file in config.headers(ApiSubset::Usb)? {
             builder = builder.allowlist_file(format!("(?i).*{header_file}.*"));
+        }
+        if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Usb) {
+            builder = builder.raw_line(raw_lines);
         }
         builder
     };

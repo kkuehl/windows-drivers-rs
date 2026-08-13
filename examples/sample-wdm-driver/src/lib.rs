@@ -6,7 +6,8 @@
 //! This is a sample WDM driver that demonstrates how to use the crates in
 //! windows-driver-rs to create a skeleton of a WDM driver.
 
-#![no_std]
+#![cfg_attr(not(test), no_std)]
+
 extern crate alloc;
 
 #[cfg(not(test))]
@@ -40,7 +41,9 @@ static GLOBAL_ALLOCATOR: WdkAllocator = WdkAllocator;
 /// Function is unsafe since it dereferences raw pointers passed to it from WDM
 // SAFETY: "DriverEntry" is the required symbol name for Windows driver entry points.
 // No other function in this compilation unit exports this name, preventing symbol conflicts.
-#[unsafe(export_name = "DriverEntry")]
+// The cfg gate on export_name is temporary to avoid clashing with the `DriverEntry`
+// provided by the `test-stubs` feature.
+#[cfg_attr(not(test), unsafe(export_name = "DriverEntry"))]
 pub unsafe extern "system" fn driver_entry(
     driver: &mut DRIVER_OBJECT,
     registry_path: PCUNICODE_STRING,
@@ -92,4 +95,17 @@ pub unsafe extern "system" fn driver_entry(
 extern "C" fn driver_exit(_driver: *mut DRIVER_OBJECT) {
     println!("Goodbye World!");
     println!("Driver Exit Complete!");
+}
+
+#[cfg(test)]
+mod tests {
+
+    /// Dummy test to ensure `test` targets compile correctly 
+    /// without linking WDK libs
+    #[test]
+    fn test_driver_exit() {
+        use super::*;
+
+        driver_exit(core::ptr::null_mut())
+    }
 }
