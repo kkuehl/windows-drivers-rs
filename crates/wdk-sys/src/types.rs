@@ -71,3 +71,43 @@ pub use bindings::*;
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/types.rs"));
 }
+
+// MDL (Memory Descriptor List) types from wdm.h
+//
+// These types are used by the MDL functions in ntddk.rs. The MDL structure itself
+// is opaque to drivers (only the kernel accesses its fields), so we define it as
+// an opaque type.
+
+/// Opaque structure describing a range of virtual memory pages.
+///
+/// Drivers should not access MDL fields directly. Use the MDL functions
+/// (IoAllocateMdl, MmProbeAndLockPages, etc.) to manipulate MDLs.
+#[repr(C)]
+pub struct MDL {
+    _opaque: [u8; 0],
+}
+
+/// Pointer to an MDL.
+pub type PMDL = *mut MDL;
+
+/// Specifies the type of access for which pages should be locked.
+///
+/// Used with `MmProbeAndLockPages`.
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LOCK_OPERATION {
+    /// Lock pages for read access.
+    IoReadAccess = 0,
+    /// Lock pages for write access.
+    IoWriteAccess = 1,
+    /// Lock pages for both read and write access.
+    IoModifyAccess = 2,
+}
+
+// Page priority constants for MmGetSystemAddressForMdlSafe
+/// Normal page priority (typical case).
+pub const NORMAL_PAGE_PRIORITY: ULONG = 16;
+/// Low page priority (can fail under memory pressure).
+pub const LOW_PAGE_PRIORITY: ULONG = 0;
+/// High page priority (should not fail except in extreme cases).
+pub const HIGH_PAGE_PRIORITY: ULONG = 32;
