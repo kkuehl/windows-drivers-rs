@@ -509,7 +509,9 @@ mod tests {
             FILE_VALID_DATA_LENGTH_INFORMATION,
         };
 
-        // Validate values match ntifs.h
+        // Values are from the `FILE_INFORMATION_CLASS` enumeration in `km/wdm.h`, which states each
+        // one in a trailing comment. Cross-checked against the same enumeration in the consuming
+        // driver's `Common/Undocumented/File.h`.
         assert_eq!(FILE_RENAME_INFORMATION, 10);
         assert_eq!(FILE_LINK_INFORMATION, 11);
         assert_eq!(FILE_DISPOSITION_INFORMATION, 13);
@@ -519,11 +521,30 @@ mod tests {
         assert_eq!(FILE_SHORT_NAME_INFORMATION, 40);
         assert_eq!(FILE_DISPOSITION_INFORMATION_EX, 64);
         assert_eq!(FILE_RENAME_INFORMATION_EX, 65);
-        assert_eq!(FILE_RENAME_INFORMATION_BYPASS_ACCESS_CHECK, 71);
         assert_eq!(FILE_LINK_INFORMATION_EX, 72);
-        assert_eq!(FILE_RENAME_INFORMATION_EX_BYPASS_ACCESS_CHECK, 73);
-        assert_eq!(FILE_LINK_INFORMATION_BYPASS_ACCESS_CHECK, 74);
-        assert_eq!(FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK, 75);
+
+        // The four bypass-access-check classes are NOT contiguous with their non-bypass
+        // counterparts, and this test previously asserted them as though they were — 71, 73, 74, 75
+        // instead of 56, 57, 66, 73. Because the assertions were written from the same wrong source
+        // as the constants, the test passed and pinned the error rather than catching it.
+        //
+        // That mattered: 71 is `FileCaseSensitiveInformation` and 74 is
+        // `FileStorageReserveIdInformation`, both taking a 4-byte buffer, and a consumer that routed
+        // 71 into a rename handler cast that buffer to `FILE_RENAME_INFO` and read a length field
+        // past its end — an out-of-bounds kernel read reachable from user mode through
+        // `SetFileInformationByHandle`.
+        //
+        // If one of these ever fails, do not adjust the expectation. Read `km/wdm.h` — the values
+        // are in its own comments at lines 8204, 8205, 8219 and 8226 of WDK 10.0.28000.0.
+        assert_eq!(FILE_RENAME_INFORMATION_BYPASS_ACCESS_CHECK, 56);
+        assert_eq!(FILE_LINK_INFORMATION_BYPASS_ACCESS_CHECK, 57);
+        assert_eq!(FILE_RENAME_INFORMATION_EX_BYPASS_ACCESS_CHECK, 66);
+        assert_eq!(FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK, 73);
+
+        // Each bypass class must differ from the unrelated class that previously occupied its slot,
+        // which is the specific confusion that caused the out-of-bounds read.
+        assert_ne!(FILE_RENAME_INFORMATION_BYPASS_ACCESS_CHECK, 71);
+        assert_ne!(FILE_LINK_INFORMATION_BYPASS_ACCESS_CHECK, 74);
     }
 
     /// Lookaside lists provide efficient allocation/deallocation of fixed-size objects
