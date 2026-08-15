@@ -7,8 +7,8 @@
 //!
 //! # The problem these solve
 //!
-//! `km/wdm.h:27592` is `#if (NTDDI_VERSION >= NTDDI_WIN10_NI)`. Above it the two
-//! routines are `NTKERNELAPI` declarations (`km/wdm.h:27599` and `:27606`);
+//! `km/wdm.h:27592` is `#if (NTDDI_VERSION >= NTDDI_WIN10_NI)`. Above it the
+//! two routines are `NTKERNELAPI` declarations (`km/wdm.h:27599` and `:27606`);
 //! below it, in the `#else` at `km/wdm.h:27612-27700`, the WDK supplies
 //! `FORCEINLINE` bodies instead. `NTDDI_WIN10_NI` is Windows 11 22H2 / Windows
 //! Server 2025.
@@ -42,10 +42,10 @@
 //!   exported routine is called, so behaviour is byte for byte what it was.
 //! - **Unresolved** — the kernel is older. The lookaside list degenerates to a
 //!   100%-miss cache: every allocation goes to `L.AllocateEx` and every free to
-//!   `L.FreeEx`, which are the callbacks `ExInitializeLookasideListEx` installed
-//!   and are exactly what the WDK's own `FORCEINLINE` body calls on a miss
-//!   (`km/wdm.h:27650-27654` and `:27692-27694`). Correct, and slower by one
-//!   pool round trip per allocation.
+//!   `L.FreeEx`, which are the callbacks `ExInitializeLookasideListEx`
+//!   installed and are exactly what the WDK's own `FORCEINLINE` body calls on a
+//!   miss (`km/wdm.h:27650-27654` and `:27692-27694`). Correct, and slower by
+//!   one pool round trip per allocation.
 //!
 //! # What is deliberately not done, and why
 //!
@@ -110,8 +110,8 @@ static FREE_NAME: [WCHAR; 23] = wide(b"ExFreeToLookasideListEx");
 
 /// Widens an ASCII routine name at compile time.
 ///
-/// A `const fn` so the two names above are data in the image rather than work at
-/// run time, and so a non-ASCII byte is a build failure rather than a lookup
+/// A `const fn` so the two names above are data in the image rather than work
+/// at run time, and so a non-ASCII byte is a build failure rather than a lookup
 /// that silently misses.
 const fn wide<const N: usize>(name: &[u8]) -> [WCHAR; N] {
     assert!(name.len() == N, "buffer length should match the name");
@@ -183,9 +183,9 @@ fn resolve(cache: &AtomicUsize, name: &'static [WCHAR]) -> usize {
 
     let mut routine_name = name_of(name);
 
-    // SAFETY: `routine_name` is a valid `UNICODE_STRING` over a `static` buffer that
-    // outlives the call, and the IRQL test above establishes the `PASSIVE_LEVEL`
-    // precondition
+    // SAFETY: `routine_name` is a valid `UNICODE_STRING` over a `static` buffer
+    // that outlives the call, and the IRQL test above establishes the
+    // `PASSIVE_LEVEL` precondition
     let address = unsafe { MmGetSystemRoutineAddress(&raw mut routine_name) };
 
     let resolved = if address.is_null() {
@@ -205,8 +205,8 @@ fn resolve(cache: &AtomicUsize, name: &'static [WCHAR]) -> usize {
 /// Removes (pops) the first entry from the specified lookaside list.
 ///
 /// `km/wdm.h:27596-27600` when the kernel exports it, and the miss arm of
-/// `km/wdm.h:27619-27657` when it does not. See the module documentation for why
-/// this is not a plain extern.
+/// `km/wdm.h:27619-27657` when it does not. See the module documentation for
+/// why this is not a plain extern.
 ///
 /// # Safety
 ///
@@ -226,8 +226,7 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
         // SAFETY: `resolved` is neither `UNRESOLVED` nor `ABSENT`, so it is the address
         // `MmGetSystemRoutineAddress` returned for `ExAllocateFromLookasideListEx`,
         // whose declared signature is `AllocateFromLookaside`
-        let routine =
-            unsafe { core::mem::transmute::<usize, AllocateFromLookaside>(resolved) };
+        let routine = unsafe { core::mem::transmute::<usize, AllocateFromLookaside>(resolved) };
 
         // SAFETY: the caller's contract is this routine's contract, unchanged
         return unsafe { routine(Lookaside) };
@@ -246,8 +245,7 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
     // anonymous union and both are `ULONG`, so reading and writing either is valid
     // whichever the kernel last wrote
     unsafe {
-        list.__bindgen_anon_2.AllocateMisses =
-            list.__bindgen_anon_2.AllocateMisses.wrapping_add(1);
+        list.__bindgen_anon_2.AllocateMisses = list.__bindgen_anon_2.AllocateMisses.wrapping_add(1);
     }
 
     // SAFETY: `AllocateEx` and `Allocate` are the two arms of one anonymous union;
@@ -267,9 +265,16 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
 
     // `km/wdm.h:27650-27654`, argument for argument.
     // SAFETY: `allocate` is the non-null callback the kernel installed in this
-    // descriptor, and the four arguments are the descriptor's own `Type`, `Size` and
-    // `Tag` plus the descriptor itself, which is what the WDK passes
-    unsafe { allocate(list.Type, list.Size as crate::types::SIZE_T, list.Tag, Lookaside) }
+    // descriptor, and the four arguments are the descriptor's own `Type`, `Size`
+    // and `Tag` plus the descriptor itself, which is what the WDK passes
+    unsafe {
+        allocate(
+            list.Type,
+            list.Size as crate::types::SIZE_T,
+            list.Tag,
+            Lookaside,
+        )
+    }
 }
 
 /// Inserts (pushes) the specified entry into the specified lookaside list.
