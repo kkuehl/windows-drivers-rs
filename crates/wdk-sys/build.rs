@@ -294,6 +294,23 @@ fn generate_base(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
         if let Some(raw_lines) = config.bindgen_library_link_raw_lines(ApiSubset::Base) {
             builder = builder.raw_line(raw_lines);
         }
+
+        // These two are `NTKERNELAPI` only under
+        // `#if (NTDDI_VERSION >= NTDDI_WIN10_NI)` (`km/wdm.h:27592`) -- Windows 11
+        // 22H2 / Server 2025 -- and `FORCEINLINE` below it. bindgen cannot inline a
+        // `FORCEINLINE`, so it emits externs, and an extern is an import the kernel's
+        // image loader must resolve before `DriverEntry` runs. Binding them therefore
+        // makes every consumer fail to load on all of Windows 10 and on Server 2016,
+        // 2019 and 2022, silently. MSVC honours the `FORCEINLINE` and emits no
+        // import, which is why C drivers built against the same WDK do not have this
+        // problem.
+        //
+        // `wdk-sys::ntddk` re-exports hand-written replacements of the same names, so
+        // consumers are unaffected. See `src/lookaside_downlevel.rs`.
+        for function in ["ExAllocateFromLookasideListEx", "ExFreeToLookasideListEx"] {
+            builder = builder.blocklist_function(function);
+        }
+
         builder
     };
     trace!(bindgen_builder = ?bindgen_builder);
