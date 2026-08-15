@@ -23,6 +23,13 @@ mod bindings {
     include!(concat!(env!("OUT_DIR"), "/ntddk.rs"));
 }
 
+// `ExAllocateFromLookasideListEx` and `ExFreeToLookasideListEx` are supplied by
+// hand rather than by bindgen, because binding them as plain externs raises
+// every consumer's minimum OS to Windows 11 22H2. `build.rs` blocklists them
+// from the generated `ntddk.rs`; the module documentation has the mechanism.
+mod lookaside_downlevel;
+pub use lookaside_downlevel::{ExAllocateFromLookasideListEx, ExFreeToLookasideListEx};
+
 // MDL flag constants for interpreting MDL.MdlFlags
 // These are #define macros in wdm.h that bindgen cannot capture
 /// The MDL has been mapped into system virtual address space.
