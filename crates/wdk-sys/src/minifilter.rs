@@ -22,6 +22,28 @@ use crate::{
 /// pointed to by `FLT_REGISTRATION::OperationRegistration`
 pub const IRP_MJ_OPERATION_END: UCHAR = 0x80;
 
+/// Filter-manager pseudo-operation for section synchronization, used as the
+/// `MajorFunction` of an `FLT_OPERATION_REGISTRATION` entry to intercept a file
+/// being prepared for mapping as a section.
+///
+/// `fltKernel.h` spells this `((UCHAR)-1)`, which is `0xFF`. It is a
+/// filter-manager invention rather than a real IRP major function, which is why
+/// it sits outside the `IRP_MJ_*` range that `wdm.h` defines and why bindgen's
+/// C-cast limitation applies to it in the same way it does to
+/// [`IRP_MJ_OPERATION_END`].
+pub const IRP_MJ_ACQUIRE_FOR_SECTION_SYNCHRONIZATION: UCHAR = 0xFF;
+
+// The two constants above are the same value `fltKernel.h` gives them, restated
+// here so a future edit cannot silently change a registration sentinel.
+// `IRP_MJ_OPERATION_END` in particular terminates an array the filter manager
+// walks, so a wrong value is an out-of-bounds read inside FltMgr rather than a
+// visible failure.
+const _: () = assert!(
+    IRP_MJ_OPERATION_END == 0x80 && IRP_MJ_ACQUIRE_FOR_SECTION_SYNCHRONIZATION == u8::MAX,
+    "IRP_MJ_* sentinels must match fltKernel.h: IRP_MJ_OPERATION_END is ((UCHAR)0x80) and \
+     IRP_MJ_ACQUIRE_FOR_SECTION_SYNCHRONIZATION is ((UCHAR)-1)"
+);
+
 // Object-like macros whose expansion references other identifiers are not
 // emitted by bindgen either, so the access mask a minifilter passes to
 // `FltBuildDefaultSecurityDescriptor` must be composed by hand. It is derived
@@ -43,8 +65,9 @@ pub const FLT_PORT_ALL_ACCESS: ACCESS_MASK = FLT_PORT_CONNECT | STANDARD_RIGHTS_
 // bindgen skips. Minifilters need this to identify which process originated an
 // I/O operation, so it's manually ported here.
 //
-// SAFETY: This function is safe to call with any valid FLT_CALLBACK_DATA pointer.
-// It returns the process ID (ULONG) of the thread that originated the operation.
+// SAFETY: This function is safe to call with any valid FLT_CALLBACK_DATA
+// pointer. It returns the process ID (ULONG) of the thread that originated the
+// operation.
 unsafe extern "C" {
     /// Returns the process ID of the thread that originated the I/O operation
     /// represented by the given callback data.
@@ -58,15 +81,18 @@ unsafe extern "C" {
     /// # Safety
     /// The caller must ensure `CallbackData` is a valid pointer to
     /// `FLT_CALLBACK_DATA`.
-    pub fn FltGetRequestorProcessId(CallbackData: *mut crate::types::FLT_CALLBACK_DATA)
-        -> crate::types::ULONG;
+    pub fn FltGetRequestorProcessId(
+        CallbackData: *mut crate::types::FLT_CALLBACK_DATA,
+    ) -> crate::types::ULONG;
 
     /// Retrieves name information for a file object.
     ///
     /// # Parameters
     /// * `CallbackData` - Pointer to the callback data for the operation
-    /// * `NameOptions` - Flags specifying what name format to retrieve and how to query it
-    /// * `RetFileNameInformation` - Receives a pointer to the name information structure
+    /// * `NameOptions` - Flags specifying what name format to retrieve and how
+    ///   to query it
+    /// * `RetFileNameInformation` - Receives a pointer to the name information
+    ///   structure
     ///
     /// # Returns
     /// `NTSTATUS` - STATUS_SUCCESS if successful, error code otherwise
@@ -74,15 +100,18 @@ unsafe extern "C" {
     /// # Safety
     /// The caller must:
     /// - Ensure `CallbackData` is a valid pointer to FLT_CALLBACK_DATA
-    /// - Ensure `RetFileNameInformation` is a valid pointer to receive the result
-    /// - Call `FltReleaseFileNameInformation` when done with the returned structure
+    /// - Ensure `RetFileNameInformation` is a valid pointer to receive the
+    ///   result
+    /// - Call `FltReleaseFileNameInformation` when done with the returned
+    ///   structure
     pub fn FltGetFileNameInformation(
         CallbackData: *mut crate::types::FLT_CALLBACK_DATA,
         NameOptions: crate::types::ULONG,
         RetFileNameInformation: *mut *mut crate::types::FLT_FILE_NAME_INFORMATION,
     ) -> crate::types::NTSTATUS;
 
-    /// Releases a file name information structure obtained from FltGetFileNameInformation.
+    /// Releases a file name information structure obtained from
+    /// FltGetFileNameInformation.
     ///
     /// # Parameters
     /// * `FileNameInformation` - Pointer to the structure to release
