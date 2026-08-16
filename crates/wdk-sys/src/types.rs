@@ -127,11 +127,6 @@ pub enum LOCK_OPERATION {
 // Page priority constants for MmGetSystemAddressForMdlSafe
 /// Normal page priority (typical case).
 pub const NORMAL_PAGE_PRIORITY: ULONG = 16;
-/// Low page priority (can fail under memory pressure).
-pub const LOW_PAGE_PRIORITY: ULONG = 0;
-/// High page priority (should not fail except in extreme cases).
-pub const HIGH_PAGE_PRIORITY: ULONG = 32;
-
 /// Memory caching types for `MmMapLockedPagesSpecifyCache`.
 ///
 /// These values control how the mapped pages are cached in the processor's
