@@ -242,3 +242,75 @@ pub struct FILE_LINK_INFO {
     /// `FileNameLength`.
     pub FileName: [WCHAR; 1],
 }
+
+/// PE Optional Header (64-bit).
+///
+/// Part of the PE NT headers structure, contains Windows-specific fields
+/// and the subsystem indicator.
+///
+/// # Layout
+///
+/// Matches the Windows SDK `_IMAGE_OPTIONAL_HEADER64` definition from `winnt.h`.
+///
+/// # See also
+///
+/// - [IMAGE_OPTIONAL_HEADER64 (MSDN)](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_optional_header64)
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct IMAGE_OPTIONAL_HEADER64 {
+    pub Magic: WORD,
+    pub MajorLinkerVersion: BYTE,
+    pub MinorLinkerVersion: BYTE,
+    pub SizeOfCode: DWORD,
+    pub SizeOfInitializedData: DWORD,
+    pub SizeOfUninitializedData: DWORD,
+    pub AddressOfEntryPoint: DWORD,
+    pub BaseOfCode: DWORD,
+    pub ImageBase: ULONGLONG,
+    pub SectionAlignment: DWORD,
+    pub FileAlignment: DWORD,
+    pub MajorOperatingSystemVersion: WORD,
+    pub MinorOperatingSystemVersion: WORD,
+    pub MajorImageVersion: WORD,
+    pub MinorImageVersion: WORD,
+    pub MajorSubsystemVersion: WORD,
+    pub MinorSubsystemVersion: WORD,
+    pub Win32VersionValue: DWORD,
+    pub SizeOfImage: DWORD,
+    pub SizeOfHeaders: DWORD,
+    pub CheckSum: DWORD,
+    /// Subsystem required to run this image (e.g., IMAGE_SUBSYSTEM_NATIVE for
+    /// drivers).
+    pub Subsystem: WORD,
+    pub DllCharacteristics: WORD,
+    pub SizeOfStackReserve: ULONGLONG,
+    pub SizeOfStackCommit: ULONGLONG,
+    pub SizeOfHeapReserve: ULONGLONG,
+    pub SizeOfHeapCommit: ULONGLONG,
+    pub LoaderFlags: DWORD,
+    pub NumberOfRvaAndSizes: DWORD,
+    pub DataDirectory: [IMAGE_DATA_DIRECTORY; 16],
+}
+
+/// PE NT Headers (64-bit).
+///
+/// Contains the PE signature, file header, and optional header for a 64-bit
+/// executable image.
+///
+/// # Layout
+///
+/// Matches the Windows SDK `_IMAGE_NT_HEADERS64` definition from `winnt.h`.
+///
+/// # See also
+///
+/// - [IMAGE_NT_HEADERS64 (MSDN)](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_nt_headers64)
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct IMAGE_NT_HEADERS64 {
+    pub Signature: DWORD,
+    pub FileHeader: IMAGE_FILE_HEADER,
+    pub OptionalHeader: IMAGE_OPTIONAL_HEADER64,
+}
+
+/// Pointer to IMAGE_NT_HEADERS64.
+pub type PIMAGE_NT_HEADERS64 = *mut IMAGE_NT_HEADERS64;
