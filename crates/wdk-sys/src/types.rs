@@ -243,6 +243,49 @@ pub struct FILE_LINK_INFO {
     pub FileName: [WCHAR; 1],
 }
 
+/// PE Data Directory entry.
+///
+/// Describes the location and size of a data directory (exports, imports, etc.)
+/// in the PE image.
+///
+/// # Layout
+///
+/// Matches the Windows SDK `_IMAGE_DATA_DIRECTORY` definition from `winnt.h`.
+///
+/// # See also
+///
+/// - [IMAGE_DATA_DIRECTORY (MSDN)](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_data_directory)
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct IMAGE_DATA_DIRECTORY {
+    pub VirtualAddress: DWORD,
+    pub Size: DWORD,
+}
+
+/// PE File Header.
+///
+/// Contains machine type, section count, timestamp, and other file-level
+/// information for a PE image.
+///
+/// # Layout
+///
+/// Matches the Windows SDK `_IMAGE_FILE_HEADER` definition from `winnt.h`.
+///
+/// # See also
+///
+/// - [IMAGE_FILE_HEADER (MSDN)](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_file_header)
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct IMAGE_FILE_HEADER {
+    pub Machine: WORD,
+    pub NumberOfSections: WORD,
+    pub TimeDateStamp: DWORD,
+    pub PointerToSymbolTable: DWORD,
+    pub NumberOfSymbols: DWORD,
+    pub SizeOfOptionalHeader: WORD,
+    pub Characteristics: WORD,
+}
+
 /// PE Optional Header (64-bit).
 ///
 /// Part of the PE NT headers structure, contains Windows-specific fields
