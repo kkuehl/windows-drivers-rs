@@ -74,7 +74,8 @@ mod bindings {
 
 // MDL (Memory Descriptor List) types from wdm.h
 //
-// These types are used by the MDL functions in ntddk.rs. The MDL structure itself
+// These types are used by the MDL functions in ntddk.rs. The MDL structure
+// itself
 /// Memory Descriptor List (MDL) structure.
 ///
 /// An MDL describes a buffer in memory by dividing it into physical pages.
@@ -83,9 +84,9 @@ mod bindings {
 /// # Layout
 ///
 /// This structure matches the Windows DDK `_MDL` definition from `wdm.h`.
-/// While Microsoft documentation says drivers should not access MDL fields directly,
-/// the `MmGetSystemAddressForMdlSafe` macro requires reading `MdlFlags` and
-/// `MappedSystemVa`, so we expose the full structure.
+/// While Microsoft documentation says drivers should not access MDL fields
+/// directly, the `MmGetSystemAddressForMdlSafe` macro requires reading
+/// `MdlFlags` and `MappedSystemVa`, so we expose the full structure.
 #[repr(C)]
 pub struct MDL {
     /// Pointer to the next MDL in a chain.
@@ -133,7 +134,8 @@ pub const HIGH_PAGE_PRIORITY: ULONG = 32;
 
 /// Memory caching types for `MmMapLockedPagesSpecifyCache`.
 ///
-/// These values control how the mapped pages are cached in the processor's TLBs.
+/// These values control how the mapped pages are cached in the processor's
+/// TLBs.
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MEMORY_CACHING_TYPE {
@@ -190,7 +192,8 @@ pub enum KEY_VALUE_INFORMATION_CLASS {
 ///
 /// # Layout
 ///
-/// Matches the Windows DDK `_FILE_RENAME_INFORMATION` definition from `ntifs.h`.
+/// Matches the Windows DDK `_FILE_RENAME_INFORMATION` definition from
+/// `ntifs.h`.
 ///
 /// # See also
 ///
@@ -200,12 +203,14 @@ pub enum KEY_VALUE_INFORMATION_CLASS {
 pub struct FILE_RENAME_INFO {
     /// If `TRUE`, replace the target file if it exists.
     pub ReplaceIfExists: BOOLEAN,
-    /// Optional handle to the root directory for relative paths. NULL for absolute paths.
+    /// Optional handle to the root directory for relative paths. NULL for
+    /// absolute paths.
     pub RootDirectory: HANDLE,
     /// Length of the `FileName` field in bytes (not including null terminator).
     pub FileNameLength: ULONG,
     /// The new file name as a WCHAR array (not null-terminated).
-    /// This field is variable-length; the actual length is specified by `FileNameLength`.
+    /// This field is variable-length; the actual length is specified by
+    /// `FileNameLength`.
     pub FileName: [WCHAR; 1],
 }
 
@@ -227,12 +232,13 @@ pub struct FILE_RENAME_INFO {
 pub struct FILE_LINK_INFO {
     /// If `TRUE`, replace the target file if it exists.
     pub ReplaceIfExists: BOOLEAN,
-    /// Optional handle to the root directory for relative paths. NULL for absolute paths.
+    /// Optional handle to the root directory for relative paths. NULL for
+    /// absolute paths.
     pub RootDirectory: HANDLE,
     /// Length of the `FileName` field in bytes (not including null terminator).
     pub FileNameLength: ULONG,
     /// The link file name as a WCHAR array (not null-terminated).
-    /// This field is variable-length; the actual length is specified by `FileNameLength`.
+    /// This field is variable-length; the actual length is specified by
+    /// `FileNameLength`.
     pub FileName: [WCHAR; 1],
 }
-
