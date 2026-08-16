@@ -260,4 +260,17 @@ unsafe extern "C" {
     /// - Handle must be a valid open handle
     /// - Do not use the handle after closing it
     pub fn ZwClose(Handle: crate::types::HANDLE) -> crate::types::NTSTATUS;
+
+    /// Returns a pointer to the IMAGE_NT_HEADERS structure for a mapped image.
+    ///
+    /// # Parameters
+    /// * `Base` - Base address of the mapped PE image
+    ///
+    /// # Returns
+    /// Pointer to IMAGE_NT_HEADERS64 if the image is valid, null otherwise
+    ///
+    /// # Safety
+    /// - Base must point to a valid mapped PE image
+    /// - The image must remain mapped for the duration of header access
+    pub fn RtlImageNtHeader(Base: crate::types::PVOID) -> crate::types::PIMAGE_NT_HEADERS64;
 }

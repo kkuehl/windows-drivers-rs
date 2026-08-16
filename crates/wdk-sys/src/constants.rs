@@ -199,6 +199,20 @@ mod kernel_mode {
     /// Extended link information that bypasses access checks (kernel mode
     /// only).
     pub const FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK: i32 = 73;
+
+    // PE Image constants (from winnt.h)
+
+    /// Native subsystem indicator for kernel drivers.
+    ///
+    /// From `IMAGE_OPTIONAL_HEADER.Subsystem` field. Value indicates the image
+    /// is a native driver that runs in kernel mode.
+    pub const IMAGE_SUBSYSTEM_NATIVE: u16 = 1;
+
+    /// High page priority for MDL mapping operations.
+    ///
+    /// Used with `MmMapLockedPagesSpecifyCache` to request high-priority page
+    /// mapping. Value from `wdm.h`.
+    pub const HIGH_PAGE_PRIORITY: u32 = 32;
 }
 
 // Due to linker issues with windows_sys, these definitions are manually
