@@ -200,40 +200,6 @@ mod kernel_mode {
     /// only).
     pub const FILE_LINK_INFORMATION_EX_BYPASS_ACCESS_CHECK: i32 = 73;
 
-    // File sharing modes (from ntifs.h)
-
-    /// Allow subsequent open operations for read access.
-    pub const FILE_SHARE_READ: ULONG = 0x00000001;
-    /// Allow subsequent open operations for write access.
-    pub const FILE_SHARE_WRITE: ULONG = 0x00000002;
-    /// Allow subsequent open operations for delete access.
-    pub const FILE_SHARE_DELETE: ULONG = 0x00000004;
-
-    // File creation dispositions (from ntifs.h)
-
-    /// Open the file if it exists, fail if it doesn't.
-    pub const FILE_OPEN: ULONG = 0x00000001;
-    /// Create the file, fail if it exists.
-    pub const FILE_CREATE: ULONG = 0x00000002;
-    /// Open the file if it exists, create it if it doesn't.
-    pub const FILE_OPEN_IF: ULONG = 0x00000003;
-    /// Overwrite the file if it exists, fail if it doesn't.
-    pub const FILE_OVERWRITE: ULONG = 0x00000004;
-    /// Overwrite the file if it exists, create it if it doesn't.
-    pub const FILE_OVERWRITE_IF: ULONG = 0x00000005;
-
-    // File creation options (from ntifs.h)
-
-    /// Open a reparse point instead of following it.
-    pub const FILE_OPEN_REPARSE_POINT: ULONG = 0x00200000;
-    /// Open the file with backup intent (bypasses some security checks).
-    pub const FILE_OPEN_FOR_BACKUP_INTENT: ULONG = 0x00004000;
-
-    // I/O options for IoCreateFileSpecifyDeviceObjectHint (from ntifs.h)
-
-    /// Ignore share access checks when opening the file.
-    pub const IO_IGNORE_SHARE_ACCESS_CHECK: ULONG = 0x00000800;
-
     // PE Image constants (from winnt.h)
 
     /// Native subsystem indicator for kernel drivers.
