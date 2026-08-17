@@ -273,4 +273,78 @@ unsafe extern "C" {
     /// - Base must point to a valid mapped PE image
     /// - The image must remain mapped for the duration of header access
     pub fn RtlImageNtHeader(Base: crate::types::PVOID) -> crate::types::PIMAGE_NT_HEADERS64;
+
+    /// Creates or opens a file, specifying a device object hint.
+    ///
+    /// Port of `IoCreateFileSpecifyDeviceObjectHint` from ntddk.h.
+    ///
+    /// # Parameters
+    /// * `FileHandle` - Receives the file handle on success
+    /// * `DesiredAccess` - ACCESS_MASK specifying desired access rights (e.g., 0 for no access)
+    /// * `ObjectAttributes` - Pointer to OBJECT_ATTRIBUTES describing the file
+    /// * `IoStatusBlock` - Pointer to IO_STATUS_BLOCK to receive I/O status
+    /// * `AllocationSize` - Optional initial allocation size (can be null)
+    /// * `FileAttributes` - File attributes (e.g., FILE_ATTRIBUTE_NORMAL = 0x80)
+    /// * `ShareAccess` - Sharing mode (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+    /// * `Disposition` - Action to take (FILE_OPEN, FILE_CREATE, etc.)
+    /// * `CreateOptions` - Additional options (FILE_OPEN_REPARSE_POINT, etc.)
+    /// * `EaBuffer` - Optional extended attributes buffer
+    /// * `EaLength` - Length of EaBuffer in bytes
+    /// * `CreateFileType` - Type of file to create (CreateFileTypeNone = 0)
+    /// * `InternalParameters` - Type-specific parameters (usually null)
+    /// * `Options` - IO_IGNORE_SHARE_ACCESS_CHECK or other options
+    /// * `DeviceObject` - Optional device object hint
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - FileHandle, ObjectAttributes, and IoStatusBlock must be valid pointers
+    /// - Must call ZwClose on the handle when done
+    /// - Device object must remain valid if provided
+    pub fn IoCreateFileSpecifyDeviceObjectHint(
+        FileHandle: *mut crate::types::HANDLE,
+        DesiredAccess: crate::types::ACCESS_MASK,
+        ObjectAttributes: *mut crate::types::OBJECT_ATTRIBUTES,
+        IoStatusBlock: *mut crate::types::IO_STATUS_BLOCK,
+        AllocationSize: *mut crate::types::LARGE_INTEGER,
+        FileAttributes: crate::types::ULONG,
+        ShareAccess: crate::types::ULONG,
+        Disposition: crate::types::ULONG,
+        CreateOptions: crate::types::ULONG,
+        EaBuffer: crate::types::PVOID,
+        EaLength: crate::types::ULONG,
+        CreateFileType: crate::types::CREATE_FILE_TYPE,
+        InternalParameters: crate::types::PVOID,
+        Options: crate::types::ULONG,
+        DeviceObject: crate::types::PVOID,
+    ) -> crate::types::NTSTATUS;
+
+    /// Queries information about a file object.
+    ///
+    /// Port of `ZwQueryInformationFile` from ntddk.h.
+    ///
+    /// # Parameters
+    /// * `FileHandle` - Handle to the file object
+    /// * `IoStatusBlock` - Pointer to IO_STATUS_BLOCK to receive I/O status
+    /// * `FileInformation` - Buffer to receive file information
+    /// * `Length` - Size of FileInformation buffer in bytes
+    /// * `FileInformationClass` - Type of information to query (e.g., FileAlternateNameInformation)
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code:
+    /// - STATUS_OBJECT_NAME_NOT_FOUND if no alternate name exists
+    /// - STATUS_NOT_SUPPORTED if the file system doesn't support the query
+    ///
+    /// # Safety
+    /// - FileHandle must be a valid open file handle
+    /// - FileInformation buffer must be at least Length bytes
+    /// - IoStatusBlock must be a valid pointer
+    pub fn ZwQueryInformationFile(
+        FileHandle: crate::types::HANDLE,
+        IoStatusBlock: *mut crate::types::IO_STATUS_BLOCK,
+        FileInformation: crate::types::PVOID,
+        Length: crate::types::ULONG,
+        FileInformationClass: crate::types::FILE_INFORMATION_CLASS,
+    ) -> crate::types::NTSTATUS;
 }

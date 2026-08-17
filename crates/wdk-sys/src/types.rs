@@ -172,6 +172,119 @@ pub enum KEY_VALUE_INFORMATION_CLASS {
     MaxKeyValueInfoClass = 6,
 }
 
+/// File information class for ZwQueryInformationFile.
+///
+/// Specifies the type of information to query about a file object.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FILE_INFORMATION_CLASS {
+    /// Returns FILE_DIRECTORY_INFORMATION.
+    FileDirectoryInformation = 1,
+    /// Returns FILE_FULL_DIR_INFORMATION.
+    FileFullDirectoryInformation = 2,
+    /// Returns FILE_BOTH_DIR_INFORMATION.
+    FileBothDirectoryInformation = 3,
+    /// Returns FILE_BASIC_INFORMATION.
+    FileBasicInformation = 4,
+    /// Returns FILE_STANDARD_INFORMATION.
+    FileStandardInformation = 5,
+    /// Returns FILE_INTERNAL_INFORMATION.
+    FileInternalInformation = 6,
+    /// Returns FILE_EA_INFORMATION.
+    FileEaInformation = 7,
+    /// Returns FILE_ACCESS_INFORMATION.
+    FileAccessInformation = 8,
+    /// Returns FILE_NAME_INFORMATION.
+    FileNameInformation = 9,
+    /// Returns FILE_RENAME_INFORMATION.
+    FileRenameInformation = 10,
+    /// Returns FILE_LINK_INFORMATION.
+    FileLinkInformation = 11,
+    /// Returns FILE_NAMES_INFORMATION.
+    FileNamesInformation = 12,
+    /// Returns FILE_DISPOSITION_INFORMATION.
+    FileDispositionInformation = 13,
+    /// Returns FILE_POSITION_INFORMATION.
+    FilePositionInformation = 14,
+    /// Returns FILE_FULL_EA_INFORMATION.
+    FileFullEaInformation = 15,
+    /// Returns FILE_MODE_INFORMATION.
+    FileModeInformation = 16,
+    /// Returns FILE_ALIGNMENT_INFORMATION.
+    FileAlignmentInformation = 17,
+    /// Returns FILE_ALL_INFORMATION.
+    FileAllInformation = 18,
+    /// Returns FILE_ALLOCATION_INFORMATION.
+    FileAllocationInformation = 19,
+    /// Returns FILE_END_OF_FILE_INFORMATION.
+    FileEndOfFileInformation = 20,
+    /// Returns FILE_ALTERNATE_NAME_INFORMATION (8.3 short name).
+    FileAlternateNameInformation = 21,
+    /// Returns FILE_STREAM_INFORMATION.
+    FileStreamInformation = 22,
+    /// Returns FILE_PIPE_INFORMATION.
+    FilePipeInformation = 23,
+    /// Returns FILE_PIPE_LOCAL_INFORMATION.
+    FilePipeLocalInformation = 24,
+    /// Returns FILE_PIPE_REMOTE_INFORMATION.
+    FilePipeRemoteInformation = 25,
+    /// Returns FILE_MAILSLOT_QUERY_INFORMATION.
+    FileMailslotQueryInformation = 26,
+    /// Returns FILE_MAILSLOT_SET_INFORMATION.
+    FileMailslotSetInformation = 27,
+    /// Returns FILE_COMPRESSION_INFORMATION.
+    FileCompressionInformation = 28,
+    /// Returns FILE_OBJECT_ID_INFORMATION.
+    FileObjectIdInformation = 29,
+    /// Returns FILE_MOVE_CLUSTER_INFORMATION.
+    FileMoveClusterInformation = 31,
+    /// Returns FILE_QUOTA_INFORMATION.
+    FileQuotaInformation = 32,
+    /// Returns FILE_REPARSE_POINT_INFORMATION.
+    FileReparsePointInformation = 33,
+    /// Returns FILE_NETWORK_OPEN_INFORMATION.
+    FileNetworkOpenInformation = 34,
+    /// Returns FILE_ATTRIBUTE_TAG_INFORMATION.
+    FileAttributeTagInformation = 35,
+    /// Returns FILE_TRACKING_INFORMATION.
+    FileTrackingInformation = 36,
+    /// Returns FILE_ID_BOTH_DIR_INFORMATION.
+    FileIdBothDirectoryInformation = 37,
+    /// Returns FILE_ID_FULL_DIR_INFORMATION.
+    FileIdFullDirectoryInformation = 38,
+    /// Returns FILE_VALID_DATA_LENGTH_INFORMATION.
+    FileValidDataLengthInformation = 39,
+    /// Returns FILE_SHORT_NAME_INFORMATION.
+    FileShortNameInformation = 40,
+    /// Maximum value.
+    FileMaximumInformation = 41,
+}
+
+/// Type of file to create with IoCreateFileSpecifyDeviceObjectHint.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CREATE_FILE_TYPE {
+    /// Regular file (most common).
+    CreateFileTypeNone = 0,
+    /// Named pipe.
+    CreateFileTypeNamedPipe = 1,
+    /// Mailslot.
+    CreateFileTypeMailslot = 2,
+}
+
+/// FILE_NAME_INFORMATION structure for ZwQueryInformationFile.
+///
+/// Returns the full file name when querying FileAlternateNameInformation.
+#[repr(C)]
+#[allow(non_snake_case)]
+pub struct FILE_NAME_INFORMATION {
+    /// Length of the file name in bytes (not including null terminator).
+    pub FileNameLength: ULONG,
+    /// File name as a WCHAR array (not null-terminated).
+    /// This field is variable-length; the actual length is specified by FileNameLength.
+    pub FileName: [WCHAR; 1],
+}
+
 // File information structures from ntifs.h
 //
 // These structures are passed in IRP_MJ_SET_INFORMATION operations to rename,
