@@ -488,6 +488,153 @@ mod tests {
         assert_eq!(size_of::<MDL>(), 0, "MDL should be opaque (zero-sized)");
     }
 
+    /// Every `FILE_INFORMATION_CLASS` variant in header order, so the round-trip check below can
+    /// prove the enum is DENSE over `1..=84`. Density is the property that makes a `transmute` into
+    /// this type sound: a hole means some legal value has no variant, which is UB. Generated from
+    /// `km/wdm.h:7834-7946` (WDK 10.0.26100.0), not from `types.rs`.
+    const FILE_INFORMATION_CLASS_BY_VALUE: [wdk_sys::types::FILE_INFORMATION_CLASS; 84] = {
+        use wdk_sys::types::FILE_INFORMATION_CLASS as C;
+        [
+        C::FileDirectoryInformation,
+        C::FileFullDirectoryInformation,
+        C::FileBothDirectoryInformation,
+        C::FileBasicInformation,
+        C::FileStandardInformation,
+        C::FileInternalInformation,
+        C::FileEaInformation,
+        C::FileAccessInformation,
+        C::FileNameInformation,
+        C::FileRenameInformation,
+        C::FileLinkInformation,
+        C::FileNamesInformation,
+        C::FileDispositionInformation,
+        C::FilePositionInformation,
+        C::FileFullEaInformation,
+        C::FileModeInformation,
+        C::FileAlignmentInformation,
+        C::FileAllInformation,
+        C::FileAllocationInformation,
+        C::FileEndOfFileInformation,
+        C::FileAlternateNameInformation,
+        C::FileStreamInformation,
+        C::FilePipeInformation,
+        C::FilePipeLocalInformation,
+        C::FilePipeRemoteInformation,
+        C::FileMailslotQueryInformation,
+        C::FileMailslotSetInformation,
+        C::FileCompressionInformation,
+        C::FileObjectIdInformation,
+        C::FileCompletionInformation,
+        C::FileMoveClusterInformation,
+        C::FileQuotaInformation,
+        C::FileReparsePointInformation,
+        C::FileNetworkOpenInformation,
+        C::FileAttributeTagInformation,
+        C::FileTrackingInformation,
+        C::FileIdBothDirectoryInformation,
+        C::FileIdFullDirectoryInformation,
+        C::FileValidDataLengthInformation,
+        C::FileShortNameInformation,
+        C::FileIoCompletionNotificationInformation,
+        C::FileIoStatusBlockRangeInformation,
+        C::FileIoPriorityHintInformation,
+        C::FileSfioReserveInformation,
+        C::FileSfioVolumeInformation,
+        C::FileHardLinkInformation,
+        C::FileProcessIdsUsingFileInformation,
+        C::FileNormalizedNameInformation,
+        C::FileNetworkPhysicalNameInformation,
+        C::FileIdGlobalTxDirectoryInformation,
+        C::FileIsRemoteDeviceInformation,
+        C::FileUnusedInformation,
+        C::FileNumaNodeInformation,
+        C::FileStandardLinkInformation,
+        C::FileRemoteProtocolInformation,
+        C::FileRenameInformationBypassAccessCheck,
+        C::FileLinkInformationBypassAccessCheck,
+        C::FileVolumeNameInformation,
+        C::FileIdInformation,
+        C::FileIdExtdDirectoryInformation,
+        C::FileReplaceCompletionInformation,
+        C::FileHardLinkFullIdInformation,
+        C::FileIdExtdBothDirectoryInformation,
+        C::FileDispositionInformationEx,
+        C::FileRenameInformationEx,
+        C::FileRenameInformationExBypassAccessCheck,
+        C::FileDesiredStorageClassInformation,
+        C::FileStatInformation,
+        C::FileMemoryPartitionInformation,
+        C::FileStatLxInformation,
+        C::FileCaseSensitiveInformation,
+        C::FileLinkInformationEx,
+        C::FileLinkInformationExBypassAccessCheck,
+        C::FileStorageReserveIdInformation,
+        C::FileCaseSensitiveInformationForceAccessCheck,
+        C::FileKnownFolderInformation,
+        C::FileStatBasicInformation,
+        C::FileId64ExtdDirectoryInformation,
+        C::FileId64ExtdBothDirectoryInformation,
+        C::FileIdAllExtdDirectoryInformation,
+        C::FileIdAllExtdBothDirectoryInformation,
+        C::FileStreamReservationInformation,
+        C::FileMupProviderInfo,
+        C::FileMaximumInformation,
+        ]
+    };
+
+    /// The `FILE_INFORMATION_CLASS` *enum* matches `km/wdm.h`, end to end.
+    ///
+    /// Distinct from `file_information_class_constants_exist` below, which checks the free
+    /// `FILE_*_INFORMATION` constants. This checks the `#[repr(i32)]` enum in `types.rs`, and it
+    /// exists because that enum was wrong in a way that made `transmute` into it **undefined
+    /// behaviour** rather than merely inaccurate.
+    ///
+    /// Every value here is read off `km/wdm.h:7834-7946` (WDK 10.0.26100.0), where
+    /// `FileDirectoryInformation = 1` is the only explicit discriminant and the remaining 83 entries
+    /// increment implicitly -- so entry N has value N. Reading them off `types.rs` instead would pin
+    /// whatever `types.rs` says, which is exactly the failure `constants.rs:172-185` records.
+    ///
+    /// The three defects this pins, all of which were live:
+    ///
+    /// * the list stopped at 40, so 41..=83 had no variant at all;
+    /// * `FileMaximumInformation` was 41 -- and 41 is `FileIoCompletionNotificationInformation`, a
+    ///   real queryable class, so the name was bound to a valid class and every bound check written
+    ///   against it was off by 43;
+    /// * value 30 was missing entirely, leaving a hole mid-range.
+    #[test]
+    fn file_information_class_enum_matches_the_wdk_header() {
+        use wdk_sys::types::FILE_INFORMATION_CLASS as C;
+
+        // Anchors: first, last, and the boundary the old truncation sat on.
+        assert_eq!(C::FileDirectoryInformation as i32, 1);
+        assert_eq!(C::FileShortNameInformation as i32, 40);
+
+        // 41 is a real class, NOT the maximum. This is the assertion that would have caught the bug.
+        assert_eq!(C::FileIoCompletionNotificationInformation as i32, 41);
+
+        // The hole: 30 exists and is `FileCompletionInformation`.
+        assert_eq!(C::FileObjectIdInformation as i32, 29);
+        assert_eq!(C::FileCompletionInformation as i32, 30);
+        assert_eq!(C::FileMoveClusterInformation as i32, 31);
+
+        // Past the old end of the list. `FileKnownFolderInformation` is the one this driver needs,
+        // and transmuting 76 into the old enum was UB.
+        assert_eq!(C::FileRenameInformationEx as i32, 65);
+        assert_eq!(C::FileKnownFolderInformation as i32, 76);
+        assert_eq!(C::FileMupProviderInfo as i32, 83);
+
+        // The real maximum, from the header's own last entry.
+        assert_eq!(C::FileMaximumInformation as i32, 84);
+
+        // And the property that makes the enum safe to transmute into at all: it is dense over
+        // 1..=84, so any value a caller can legally produce has a variant. Checked by round-tripping
+        // every discriminant rather than by trusting the count -- a hole would have passed a count.
+        for value in 1..=84_i32 {
+            let class = FILE_INFORMATION_CLASS_BY_VALUE[(value - 1) as usize];
+            assert_eq!(class as i32, value, "value {value} does not round-trip");
+        }
+    }
+
     /// FILE_INFORMATION_CLASS constants from ntifs.h are hand-ported to wdk-sys.
     /// This test verifies they exist and have the correct values.
     #[test]
