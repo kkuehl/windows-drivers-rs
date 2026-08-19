@@ -33,9 +33,8 @@
 //! calling [`alloc::alloc::handle_alloc_error`], which in a driver is
 //! `KeBugCheckEx`.
 //!
-//! Driver code therefore needs the fallible counterparts in [`fallible`] and
-//! [`sync`], which are available on a stable toolchain and require no crate
-//! features:
+//! Driver code therefore needs the fallible counterparts in [`fallible`],
+//! which are available on a stable toolchain and require no crate features:
 //!
 //! * [`fallible::FallibleVec`] — `try_push` and `try_extend`, in place of
 //!   [`alloc::vec::Vec::push`] and [`alloc::vec::Vec::extend`]
@@ -44,7 +43,29 @@
 //! * [`fallible::try_vec_with_capacity`] — in place of
 //!   [`alloc::vec::Vec::with_capacity`]
 //! * [`fallible::try_box`] — in place of [`alloc::boxed::Box::new`]
-//! * [`sync::Arc`] — in place of [`alloc::sync::Arc`]
+//!
+//! [`alloc::sync::Arc`] has no counterpart here. There used to be a
+//! hand-written strong-count-only `sync::Arc`, because `Arc::try_new` sits
+//! behind the unstable `allocator_api` feature and a stable toolchain therefore
+//! had no fallible way to build a shared pointer at all. A driver that can
+//! enable `#![feature(allocator_api)]` should use `Arc::try_new` and
+//! `Arc::try_new_in` from `alloc` instead: they cover `Arc<T>`, `Weak`, and
+//! `make_mut`, none of which a hand-written substitute did, and they are not
+//! 300 lines of unsafe refcounting for this crate to keep correct. Note that
+//! `Arc::try_new_uninit_slice` does not exist, so a fallible `Arc<[T]>` still
+//! has to go through an `Arc<Vec<T>>`.
+//!
+//! Two near-misses that look like they would give a stable fallible `Arc` and
+//! do not, recorded so they are not retried:
+//!
+//! * `Arc::from(try_box(value)?)` still allocates. `From<Box<T>>` has to build
+//!   the strong/weak count block and move the value into it, and that second
+//!   allocation is infallible.
+//! * A one-element [`alloc::vec::Vec`] reserved with
+//!   [`alloc::vec::Vec::try_reserve_exact`] and then `into_boxed_slice`d is not
+//!   reliable either: `try_reserve_exact` is documented to be allowed to
+//!   over-allocate, and when capacity exceeds length `into_boxed_slice` shrinks
+//!   — an infallible reallocation.
 
 #![no_std]
 
@@ -54,7 +75,6 @@ extern crate alloc;
 extern crate std;
 
 pub mod fallible;
-pub mod sync;
 
 #[cfg(any(driver_model__driver_type = "WDM", driver_model__driver_type = "KMDF"))]
 pub use kernel_mode::*;
