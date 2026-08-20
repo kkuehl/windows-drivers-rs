@@ -7,11 +7,20 @@
 //!
 //! # The problem these solve
 //!
-//! `km/wdm.h:27592` is `#if (NTDDI_VERSION >= NTDDI_WIN10_NI)`. Above it the
-//! two routines are `NTKERNELAPI` declarations (`km/wdm.h:27599` and `:27606`);
-//! below it, in the `#else` at `km/wdm.h:27612-27700`, the WDK supplies
-//! `FORCEINLINE` bodies instead. `NTDDI_WIN10_NI` is Windows 11 22H2 / Windows
-//! Server 2025.
+//! `10.0.26100.0/km/wdm.h:26324` is `#if (NTDDI_VERSION >= NTDDI_WIN10_NI)`.
+//! Above it the two routines are `NTKERNELAPI` declarations
+//! (`10.0.26100.0/km/wdm.h:26331` and `:26338`); below it, in the `#else` at
+//! `:26343-26433`, the WDK supplies `FORCEINLINE` bodies instead.
+//! `NTDDI_WIN10_NI` is Windows 11 22H2 / Windows Server 2025.
+//!
+//! Every WDK citation in this file names the header version it was read from,
+//! because the line numbers move by roughly a thousand lines between WDKs: the
+//! same gate is at `10.0.22621.0/km/wdm.h:25341`. An unqualified `km/wdm.h:NNN`
+//! resolves to unrelated code against any other kit, which for this file is a
+//! hazard rather than an inconvenience — the justification below is the only
+//! thing standing between a reader and "simplifying" these two back into plain
+//! externs, which would silently restore the load floor this module exists to
+//! remove.
 //!
 //! MSVC honours the `FORCEINLINE` and emits no import, which is why a C driver
 //! built against a current WDK still loads on Windows 10. bindgen cannot inline
@@ -33,9 +42,9 @@
 //! # How they behave
 //!
 //! Each resolves its own routine once, through `MmGetSystemRoutineAddress`, and
-//! caches the result. That is the same pattern the WDK documents for optional
-//! DDIs and the same one `ExInitializeDriverRuntime` uses internally for
-//! `NtQuerySystemInformation` (`km/wdm.h:50917`).
+//! caches the result. That is the pattern Microsoft documents for calling a DDI
+//! that may be absent on an older kernel while keeping the image loadable on
+//! it.
 //!
 //! - **Resolved** — the kernel is Windows 11 22H2 or later, which is every
 //!   kernel a consumer of this crate could previously load on at all. The
@@ -44,24 +53,47 @@
 //!   100%-miss cache: every allocation goes to `L.AllocateEx` and every free to
 //!   `L.FreeEx`, which are the callbacks `ExInitializeLookasideListEx`
 //!   installed and are exactly what the WDK's own `FORCEINLINE` body calls on a
-//!   miss (`km/wdm.h:27650-27654` and `:27692-27694`). Correct, and slower by
-//!   one pool round trip per allocation.
+//!   miss (`10.0.26100.0/km/wdm.h:26382-26385` and `:26424`). Correct, and
+//!   slower by one pool round trip per allocation.
 //!
 //! # What is deliberately not done, and why
 //!
 //! The `FORCEINLINE` bodies also keep an `SLIST` cache in
-//! `Lookaside->L.ListHead`, and this does not reproduce it. Restoring it needs
-//! `ExQueryDepthSList`, which on x64 is
-//! `#define ExQueryDepthSList(_listhead_) (_listhead_)->Depth`
-//! (`km/wdm.h:27422`) over a `SLIST_HEADER` whose x64 layout is a union of
-//! bitfields — `HeaderX64.Depth:16` — so a Rust transcription has to read a
-//! bitfield through a union rather than a named field. That is the one step in
-//! the transcription that can silently corrupt a system-wide structure, it
-//! cannot be exercised without a pre-NI machine, and what it buys is *speed on
-//! kernels a consumer cannot currently load on at all*. So it is correctly
-//! sequenced after this change rather than bundled into it, and the counters
-//! below are maintained so that `!lookaside` in a debugger still shows the miss
-//! rate that would motivate it.
+//! `Lookaside->L.ListHead`, and this does not reproduce it, so the miss arm
+//! above is taken on every operation rather than only on a genuine miss.
+//!
+//! Two reasons previously given for deferring that do not survive checking, and
+//! are corrected here rather than deleted so that the next reader does not
+//! re-derive them:
+//!
+//! - It is **not** true that restoring the cache requires reading a bitfield
+//!   through a union. `#define ExQueryDepthSList(_listhead_)
+//!   (_listhead_)->Depth` is the **x86** arm: it sits in the `#else` of
+//!   `#if !defined(_X86_)` at `10.0.26100.0/km/wdm.h:26104`, with the macro at
+//!   `:26154`. On x64, with `_NTDDK_`/`_NTIFS_` defined as a kernel driver
+//!   build defines them (`:26106`), `ExQueryDepthSList` is an ordinary
+//!   `NTKERNELAPI USHORT ExQueryDepthSList(PSLIST_HEADER)` export at
+//!   `:26108-26112` — which is why the generated `ntddk` bindings already
+//!   contain it, as they do `ExpInterlockedPopEntrySList` and
+//!   `ExpInterlockedPushEntrySList` (`:26197` and `:26203`, the two the
+//!   `InterlockedPop/PushEntrySList` macros expand to at `:26184-26188`). No
+//!   union access is involved.
+//! - It is **not** true that the cache would only buy speed on kernels a
+//!   consumer cannot load on anyway. That was the position *before* this
+//!   module; removing these two imports is what made the pre-NI window
+//!   loadable. Measured on the downstream minifilter this was written for: no
+//!   symbol left in its release import table is declared inside an
+//!   `NTDDI_VERSION >= NTDDI_WIN10_NI` gate, so its floor is now set by
+//!   `ExAllocatePool2` (Windows 10 2004) and the pre-NI window it can load on
+//!   spans Windows 10 2004 through 22H1 **and Windows Server 2022**. The miss
+//!   arm is therefore live on mainstream supported kernels, on that driver's
+//!   hottest path.
+//!
+//! What remains true is that the SLIST arm cannot be exercised without a pre-NI
+//! machine, and that a wrong push or pop corrupts the list's own free chain. So
+//! it is still sequenced after this change rather than bundled into it — but on
+//! that ground alone. The counters below are maintained so that `!lookaside` in
+//! a debugger shows the miss rate that motivates it.
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -90,10 +122,12 @@ static ALLOCATE_FROM_LOOKASIDE: AtomicUsize = AtomicUsize::new(UNRESOLVED);
 /// As [`ALLOCATE_FROM_LOOKASIDE`], for `ExFreeToLookasideListEx`.
 static FREE_TO_LOOKASIDE: AtomicUsize = AtomicUsize::new(UNRESOLVED);
 
-/// `ExAllocateFromLookasideListEx`, as `km/wdm.h:27596-27600` declares it.
+/// `ExAllocateFromLookasideListEx`, as `10.0.26100.0/km/wdm.h:26326-26333`
+/// declares it.
 type AllocateFromLookaside = unsafe extern "C" fn(PLOOKASIDE_LIST_EX) -> PVOID;
 
-/// `ExFreeToLookasideListEx`, as `km/wdm.h:27603-27608` declares it.
+/// `ExFreeToLookasideListEx`, as `10.0.26100.0/km/wdm.h:26335-26341` declares
+/// it.
 type FreeToLookaside = unsafe extern "C" fn(PLOOKASIDE_LIST_EX, PVOID);
 
 /// `"ExAllocateFromLookasideListEx"` as UTF-16, for
@@ -155,7 +189,7 @@ fn name_of(name: &'static [WCHAR]) -> UNICODE_STRING {
 /// # Why the IRQL is tested
 ///
 /// `MmGetSystemRoutineAddress` is `_IRQL_requires_max_(PASSIVE_LEVEL)`
-/// (`km/wdm.h:14671`) and both lookaside routines are
+/// (`10.0.26100.0/km/wdm.h:13974`) and both lookaside routines are
 /// `_IRQL_requires_max_(DISPATCH_LEVEL)`, so a caller may legitimately be above
 /// `PASSIVE_LEVEL`. Probing there would be the IRQL violation; taking the
 /// down-level path for that one call is merely slow, and a later call at
@@ -204,8 +238,8 @@ fn resolve(cache: &AtomicUsize, name: &'static [WCHAR]) -> usize {
 
 /// Removes (pops) the first entry from the specified lookaside list.
 ///
-/// `km/wdm.h:27596-27600` when the kernel exports it, and the miss arm of
-/// `km/wdm.h:27619-27657` when it does not. See the module documentation for
+/// `10.0.26100.0/km/wdm.h:26326-26333` when the kernel exports it, and the
+/// miss arm of `:26374-26389` when it does not. See the module documentation for
 /// why this is not a plain extern.
 ///
 /// # Safety
@@ -236,7 +270,7 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
     // contract, so `L` is a valid `GENERAL_LOOKASIDE_POOL`
     let list = unsafe { &mut (*Lookaside).L };
 
-    // `km/wdm.h:27643` and `:27649`. Both counters are `ULONG` and the WDK
+    // `10.0.26100.0/km/wdm.h:26378` and `:26381`. Both counters are `ULONG` and the WDK
     // increments them unsynchronized too -- they are diagnostics for `!lookaside`,
     // not accounting -- so a wrap is the WDK's behaviour and not a defect here.
     list.TotalAllocates = list.TotalAllocates.wrapping_add(1);
@@ -251,7 +285,7 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
     // SAFETY: `AllocateEx` and `Allocate` are the two arms of one anonymous union;
     // `ExInitializeLookasideListEx` is documented to fill the `Ex` form, which is
     // also the arm the WDK's own `FORCEINLINE` body calls with four arguments at
-    // `km/wdm.h:27650-27654`
+    // `10.0.26100.0/km/wdm.h:26382-26385`
     let allocate = unsafe { list.__bindgen_anon_4.AllocateEx };
 
     let Some(allocate) = allocate else {
@@ -263,7 +297,7 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
         return core::ptr::null_mut();
     };
 
-    // `km/wdm.h:27650-27654`, argument for argument.
+    // `10.0.26100.0/km/wdm.h:26382-26385`, argument for argument.
     // SAFETY: `allocate` is the non-null callback the kernel installed in this
     // descriptor, and the four arguments are the descriptor's own `Type`, `Size`
     // and `Tag` plus the descriptor itself, which is what the WDK passes
@@ -279,8 +313,8 @@ pub unsafe fn ExAllocateFromLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX) -> PV
 
 /// Inserts (pushes) the specified entry into the specified lookaside list.
 ///
-/// `km/wdm.h:27603-27608` when the kernel exports it, and the miss arm of
-/// `km/wdm.h:27662-27700` when it does not.
+/// `10.0.26100.0/km/wdm.h:26335-26341` when the kernel exports it, and the
+/// miss arm of `:26419-26431` when it does not.
 ///
 /// # Safety
 ///
@@ -309,7 +343,7 @@ pub unsafe fn ExFreeToLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX, Entry: PVOI
     // contract
     let list = unsafe { &mut (*Lookaside).L };
 
-    // `km/wdm.h:27687` and `:27690`.
+    // `10.0.26100.0/km/wdm.h:26421` and `:26423`.
     list.TotalFrees = list.TotalFrees.wrapping_add(1);
 
     // SAFETY: `FreeMisses` and `FreeHits` are the two arms of one anonymous union
@@ -320,7 +354,7 @@ pub unsafe fn ExFreeToLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX, Entry: PVOI
 
     // SAFETY: `FreeEx` and `Free` are the two arms of one anonymous union;
     // `ExInitializeLookasideListEx` fills the `Ex` form, which is the arm the WDK's
-    // own body calls with two arguments at `km/wdm.h:27692-27694`
+    // own body calls with two arguments at `10.0.26100.0/km/wdm.h:26424`
     let free = unsafe { list.__bindgen_anon_5.FreeEx };
 
     let Some(free) = free else {
@@ -330,7 +364,7 @@ pub unsafe fn ExFreeToLookasideListEx(Lookaside: PLOOKASIDE_LIST_EX, Entry: PVOI
         return;
     };
 
-    // `km/wdm.h:27692-27694`.
+    // `10.0.26100.0/km/wdm.h:26424`.
     // SAFETY: `free` is the non-null callback the kernel installed in this
     // descriptor, and `Entry` came from the matching allocate per this function's
     // contract
