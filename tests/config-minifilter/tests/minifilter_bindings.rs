@@ -738,6 +738,34 @@ mod tests {
         assert!(size_of::<_LOOKASIDE_LIST_EX>() >= 64);
     }
 
+    /// `ExAllocatePool2` is `NTKERNELAPI` under `NTDDI_VERSION >= NTDDI_WIN10_VB`
+    /// (Windows 10 2004, build 19041), so a static import fails to bind on every
+    /// Windows before that build. The C++ minifilter this fork was written for
+    /// supports Windows 10 1703 and later; the shim in
+    /// `wdk-sys/src/ntddk/allocate_pool_downlevel.rs` resolves the routine
+    /// through `MmGetSystemRoutineAddress` and falls back to
+    /// `ExAllocatePoolWithTag` when it is absent.
+    ///
+    /// This test verifies the shim is exported under the same name as the
+    /// bindgen-generated extern would have been, with the same signature, so
+    /// every existing call site continues to compile.
+    #[test]
+    const fn ex_allocate_pool2_binding_exists() {
+        use wdk_sys::{
+            POOL_FLAGS,
+            PVOID,
+            SIZE_T,
+            ULONG,
+            ntddk::ExAllocatePool2,
+        };
+
+        // Validate the shim's signature matches `ExAllocatePool2`'s WDK
+        // declaration byte for byte: `PVOID ExAllocatePool2(POOL_FLAGS Flags,
+        // SIZE_T NumberOfBytes, ULONG Tag)`
+        // (`km/wdm.h` under `NTDDI_VERSION >= NTDDI_WIN10_VB`).
+        let _: unsafe fn(POOL_FLAGS, SIZE_T, ULONG) -> PVOID = ExAllocatePool2;
+    }
+
     /// FILE_RENAME_INFO and FILE_LINK_INFO structures are passed in IRP_MJ_SET_INFORMATION
     /// operations for rename and hard-link operations. These are defined in ntifs.h but
     /// used in kernel-mode minifilters, so they must be manually added to wdk-sys.

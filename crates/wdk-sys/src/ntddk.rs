@@ -30,6 +30,16 @@ mod bindings {
 mod lookaside_downlevel;
 pub use lookaside_downlevel::{ExAllocateFromLookasideListEx, ExFreeToLookasideListEx};
 
+// `ExAllocatePool2` is supplied by hand rather than by bindgen, because
+// binding it as a plain extern raises every consumer's minimum OS to Windows
+// 10 2004 (build 19041). The C++ minifilter this fork was written for supports
+// Windows 10 RS2 (1703) and later; resolving through `MmGetSystemRoutineAddress`
+// keeps this crate's consumers loadable on the same floor. `build.rs`
+// blocklists the generated extern; `allocate_pool_downlevel.rs` documents the
+// mechanism and the fallback.
+mod allocate_pool_downlevel;
+pub use allocate_pool_downlevel::ExAllocatePool2;
+
 // MDL flag constants for interpreting MDL.MdlFlags
 // These are #define macros in wdm.h that bindgen cannot capture
 /// The MDL has been mapped into system virtual address space.

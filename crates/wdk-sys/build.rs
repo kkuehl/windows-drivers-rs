@@ -311,6 +311,26 @@ fn generate_base(out_path: &Path, config: &Config) -> Result<(), ConfigError> {
             builder = builder.blocklist_function(function);
         }
 
+        // `ExAllocatePool2` is `NTKERNELAPI` under `NTDDI_VERSION >= NTDDI_WIN10_VB`
+        // (Windows 10 2004 / May 2020), so a static import fails to bind on every
+        // Windows before build 19041. The C++ minifilter this fork was written for
+        // supports Windows 10 RS2 (1703) and later, and it resolves `ExAllocatePool2`
+        // dynamically through `MmGetSystemRoutineAddress` at `DriverEntry`
+        // (`Common/Allocator.h:80-98` in the C++ tree), falling back to
+        // `ExAllocatePoolWithTag` on pre-2004 kernels. This crate reproduces that
+        // pattern.
+        //
+        // `wdk-sys::ntddk` re-exports a hand-written `ExAllocatePool2` of the same
+        // signature that resolves through `MmGetSystemRoutineAddress` on first call,
+        // caches the answer and falls back to `ExAllocatePoolWithTag` +
+        // `RtlZeroMemory` when the routine is absent. See
+        // `src/ntddk/allocate_pool_downlevel.rs`. `wdk-alloc`'s `WdkAllocator`
+        // routes through this shim automatically because it imports
+        // `ExAllocatePool2` from `wdk_sys::ntddk`.
+        for function in ["ExAllocatePool2"] {
+            builder = builder.blocklist_function(function);
+        }
+
         builder
     };
     trace!(bindgen_builder = ?bindgen_builder);
