@@ -357,4 +357,66 @@ unsafe extern "C" {
         Length: crate::types::ULONG,
         FileInformationClass: crate::types::FILE_INFORMATION_CLASS,
     ) -> crate::types::NTSTATUS;
+
+    // =========================================================================
+    // Section mapping (for DLL injection via SEC_IMAGE pattern)
+    // =========================================================================
+
+    /// Maps a view of a section into the virtual address space of a process.
+    ///
+    /// Unlike `ZwMapViewOfSection` which takes handles, this takes the section
+    /// and process as object pointers -- the correct API when the caller already
+    /// has object references (e.g. from `ObReferenceObjectByHandle` and
+    /// `PsLookupProcessByProcessId`).
+    ///
+    /// # Parameters
+    /// * `SectionObject` - Pointer to the section object (from `ObReferenceObjectByHandle`)
+    /// * `Process` - Pointer to the target process (from `PsLookupProcessByProcessId` / `IoGetCurrentProcess`)
+    /// * `BaseAddress` - Receives the base address of the mapped view (or specifies a preferred address)
+    /// * `ZeroBits` - Number of high-order bits that must be zero in the base address
+    /// * `CommitSize` - Size of the initially committed region (0 for SEC_IMAGE)
+    /// * `SectionOffset` - Offset within the section to start the mapping
+    /// * `ViewSize` - Size of the view to map (0 = map entire section)
+    /// * `InheritDisposition` - ViewShare (1) or ViewUnmap (2)
+    /// * `AllocationType` - MEM_RESERVE, MEM_TOP_DOWN, etc. (0 for default)
+    /// * `Win32Protect` - Page protection (PAGE_EXECUTE, PAGE_READONLY, etc.)
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - SectionObject must be a valid referenced section object
+    /// - Process must be a valid referenced process object
+    /// - Must be called at IRQL PASSIVE_LEVEL
+    /// - If attached to a different process, use IoGetCurrentProcess() not NtCurrentProcess()
+    pub fn MmMapViewOfSection(
+        SectionObject: crate::types::PVOID,
+        Process: crate::types::PEPROCESS,
+        BaseAddress: *mut crate::types::PVOID,
+        ZeroBits: crate::types::ULONG_PTR,
+        CommitSize: crate::types::SIZE_T,
+        SectionOffset: *mut crate::types::LARGE_INTEGER,
+        ViewSize: *mut crate::types::SIZE_T,
+        InheritDisposition: crate::_SECTION_INHERIT,
+        AllocationType: crate::types::ULONG,
+        Win32Protect: crate::types::ULONG,
+    ) -> crate::types::NTSTATUS;
+
+    /// Unmaps a view of a section from the virtual address space of a process.
+    ///
+    /// # Parameters
+    /// * `Process` - Pointer to the process from which to unmap
+    /// * `BaseAddress` - Base address of the view to unmap
+    ///
+    /// # Returns
+    /// STATUS_SUCCESS or appropriate error code
+    ///
+    /// # Safety
+    /// - Process must be a valid referenced process object
+    /// - BaseAddress must be a previously mapped view
+    /// - Must be called at IRQL PASSIVE_LEVEL
+    pub fn MmUnmapViewOfSection(
+        Process: crate::types::PEPROCESS,
+        BaseAddress: crate::types::PVOID,
+    ) -> crate::types::NTSTATUS;
 }
