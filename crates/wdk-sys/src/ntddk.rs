@@ -397,7 +397,7 @@ unsafe extern "C" {
         CommitSize: crate::types::SIZE_T,
         SectionOffset: *mut crate::types::LARGE_INTEGER,
         ViewSize: *mut crate::types::SIZE_T,
-        InheritDisposition: crate::_SECTION_INHERIT,
+        InheritDisposition: crate::SECTION_INHERIT,
         AllocationType: crate::types::ULONG,
         Win32Protect: crate::types::ULONG,
     ) -> crate::types::NTSTATUS;
