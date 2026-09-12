@@ -419,4 +419,89 @@ unsafe extern "C" {
         Process: crate::types::PEPROCESS,
         BaseAddress: crate::types::PVOID,
     ) -> crate::types::NTSTATUS;
+
+    // =========================================================================
+    // Process / thread current-context helpers
+    //
+    // These are declared in wdm.h as inline functions that unwrap to
+    // undocumented per-CPU state (`__readgsqword`), so bindgen never generates
+    // them. They are trivially exported as `ntoskrnl.lib` symbols, which is
+    // why the kernel headers can offer them inline in the first place.
+    // =========================================================================
+
+    /// Returns the `PEPROCESS` of the currently executing thread's process.
+    /// Declared as an inline in wdm.h; the underlying ntoskrnl export links.
+    ///
+    /// # Safety
+    /// Callable at any IRQL. The returned pointer is only valid for the
+    /// lifetime of the current thread's containing process — do not
+    /// dereference across a schedule point without a reference.
+    pub fn PsGetCurrentProcess() -> crate::types::PEPROCESS;
+
+    /// Returns the `PETHREAD` of the currently executing thread.
+    /// Declared as an inline in wdm.h; the underlying ntoskrnl export links.
+    ///
+    /// # Safety
+    /// Callable at any IRQL. The returned pointer is valid for the lifetime
+    /// of the current thread and never becomes stale for the caller.
+    pub fn PsGetCurrentThread() -> crate::types::PETHREAD;
+
+    /// Returns the WOW64 information block for `Process`, or `NULL` if
+    /// `Process` is a native (x64) process.
+    ///
+    /// Declared in wdm.h but not reached by bindgen for kernel-mode targets.
+    ///
+    /// # Safety
+    /// `Process` must be a valid referenced `PEPROCESS`.
+    pub fn PsGetProcessWow64Process(Process: crate::types::PEPROCESS) -> crate::types::PVOID;
+
+    /// Sets the run-time priority of `Thread` to `Priority`. Returns the old
+    /// priority.
+    ///
+    /// Declared in wdm.h but not reached by bindgen for kernel-mode targets.
+    ///
+    /// # Safety
+    /// `Thread` must be a valid `PKTHREAD`. Called at IRQL <= `DISPATCH_LEVEL`.
+    pub fn KeSetPriorityThread(
+        Thread: crate::types::PKTHREAD,
+        Priority: crate::types::LONG,
+    ) -> crate::types::LONG;
+
+    /// Returns the caller-owned `UNICODE_STRING` for a process's full NT
+    /// image path. The caller frees the buffer with `ExFreePoolWithTag(_, 0)`.
+    ///
+    /// Declared in ntifs.h but not reached by bindgen for kernel-mode targets.
+    ///
+    /// # Safety
+    /// `Process` must be a valid referenced `PEPROCESS`. On `STATUS_SUCCESS`,
+    /// `*ProcessImageName` is a pointer to caller-owned pool that must be
+    /// freed with `ExFreePoolWithTag(_, 0)`.
+    pub fn SeLocateProcessImageName(
+        Process: crate::types::PEPROCESS,
+        ProcessImageName: *mut *mut crate::types::UNICODE_STRING,
+    ) -> crate::types::NTSTATUS;
+
+    /// Queries information about a section object.
+    ///
+    /// Declared in ntifs.h but not reached by bindgen for kernel-mode targets.
+    ///
+    /// # Safety
+    /// `SectionHandle` must be a valid section handle. `SectionInformation`
+    /// must point to a buffer of at least `SectionInformationLength` bytes
+    /// with the layout matching `SectionInformationClass`.
+    pub fn ZwQuerySection(
+        SectionHandle: crate::types::HANDLE,
+        SectionInformationClass: crate::types::ULONG,
+        SectionInformation: crate::types::PVOID,
+        SectionInformationLength: crate::types::SIZE_T,
+        ReturnLength: crate::types::PSIZE_T,
+    ) -> crate::types::NTSTATUS;
 }
+
+/// Real-time thread priority level for `KeSetPriorityThread`. Documented
+/// macro in wdm.h (`LOW_REALTIME_PRIORITY = 16`).
+pub const LOW_REALTIME_PRIORITY: crate::types::LONG = 16;
+
+/// `SECTION_INFORMATION_CLASS::SectionImageInformation` value for
+/// `ZwQuerySection`. Documented in ntifs.h.
+pub const SECTION_IMAGE_INFORMATION_CLASS: crate::types::ULONG = 1;
